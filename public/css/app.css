@@ -556,71 +556,100 @@ html[data-contrast="high"] .statusbar__seg--belum { background: #555; }
 .feed__empty { padding: 1rem 0; color: var(--muted); font-size: .92rem; }
 @keyframes feed-in { from { background: var(--accent-soft); } to { background: transparent; } }
 
-/* ---------- Jendela hasil tap ---------- */
+/* ---------- Jendela hasil tap: kartu ringkas di tengah ---------- */
 
 .tap-overlay {
     --tap: var(--info);
+    --tap-soft: var(--info-soft);
     position: fixed; inset: 0; z-index: 60;
     display: grid; place-items: center;
     padding: 1.5rem;
-    background: rgb(15 20 30 / 55%);
+    background: rgb(15 20 30 / 50%);
     overflow-y: auto;
 }
 .tap-overlay[hidden] { display: none; }
-.tap-overlay[data-tone="success"] { --tap: var(--hadir); }
-.tap-overlay[data-tone="warning"] { --tap: var(--terlambat); }
-.tap-overlay[data-tone="checkout"] { --tap: var(--pulang); }
-.tap-overlay[data-tone="info"] { --tap: var(--info); }
-.tap-overlay[data-tone="error"] { --tap: var(--alpa); }
+.tap-overlay[data-tone="success"] { --tap: var(--hadir); --tap-soft: var(--hadir-soft); }
+.tap-overlay[data-tone="warning"] { --tap: var(--terlambat); --tap-soft: var(--terlambat-soft); }
+.tap-overlay[data-tone="checkout"] { --tap: var(--pulang); --tap-soft: var(--pulang-soft); }
+.tap-overlay[data-tone="info"] { --tap: var(--info); --tap-soft: var(--info-soft); }
+.tap-overlay[data-tone="error"] { --tap: var(--alpa); --tap-soft: var(--alpa-soft); }
 .tap-overlay[data-tone="success"] [data-icon="success"],
 .tap-overlay[data-tone="warning"] [data-icon="warning"],
 .tap-overlay[data-tone="checkout"] [data-icon="checkout"],
 .tap-overlay[data-tone="info"] [data-icon="info"],
 .tap-overlay[data-tone="error"] [data-icon="error"] { display: contents; }
 
-.tap-dialog {
-    width: min(760px, 100%);
+.tap-card {
+    position: relative;
+    display: flex; flex-direction: column; align-items: center;
+    width: min(480px, 100%);
+    padding: 2.5rem 2rem 1.75rem;
     overflow: hidden;
     background: var(--surface);
-    border-radius: 18px;
+    border-radius: 20px;
     box-shadow: var(--shadow-lg);
-    animation: dialog-in .2s ease-out;
+    text-align: center;
+    animation: tap-in .22s ease-out;
 }
-.tap-dialog__status {
-    display: flex; align-items: center; gap: .9rem;
-    padding: 1.1rem 1.75rem;
+
+.tap-card__visual { position: relative; margin-bottom: 1.75rem; }
+/* Ikon status: lingkaran besar berwarna status dengan cincin lembut. */
+.tap-card__icon {
+    display: inline-grid; place-items: center;
+    width: 88px; height: 88px;
+    border-radius: 50%;
     background: var(--tap);
     color: #fff;
+    box-shadow: 0 0 0 10px var(--tap-soft);
 }
-html[data-contrast="high"] .tap-dialog__status { color: #000; }
-.tap-dialog__icon { display: inline-grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: rgb(255 255 255 / 18%); }
-.tap-dialog__icon > span { display: none; }
-.tap-dialog__headline { flex: 1; font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 700; letter-spacing: -.01em; }
-.tap-dialog__time { font-size: 1.25rem; font-weight: 600; font-variant-numeric: tabular-nums; opacity: .95; }
-.tap-dialog__body { display: flex; align-items: center; gap: 1.5rem; padding: 1.75rem 1.75rem 1.25rem; }
-.tap-dialog__photo img, .tap-dialog__initials {
-    display: block; flex-shrink: 0;
-    width: 120px; height: 120px;
-    border-radius: 16px;
-    object-fit: cover;
+.tap-card__icon > span { display: none; }
+.tap-card__icon .icon { stroke-width: 2.5; }
+html[data-contrast="high"] .tap-card__icon { color: #000; }
+
+/* Bila siswa punya foto: foto di tengah, ikon status menjadi lencana kecil di sudutnya. */
+.tap-card__photo:empty { display: none; }
+.tap-card__photo img { display: block; width: 112px; height: 112px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 4px var(--surface), 0 0 0 7px var(--tap); }
+.tap-card__visual.has-photo .tap-card__icon {
+    position: absolute; right: -6px; bottom: -4px;
+    width: 40px; height: 40px;
+    box-shadow: 0 0 0 4px var(--surface);
 }
-.tap-dialog__initials { display: grid; place-items: center; font-size: 2.75rem; font-weight: 700; color: var(--accent); background: var(--accent-soft); }
-.tap-dialog__who { min-width: 0; }
-.tap-dialog__who p { margin: 0; }
-.tap-dialog__name { font-size: clamp(1.9rem, 4.2vw, 3rem); font-weight: 700; line-height: 1.1; letter-spacing: -.025em; overflow-wrap: anywhere; }
-.tap-dialog__meta { margin-top: .4rem !important; font-size: 1.15rem; color: var(--muted); }
-.tap-dialog__meta:empty { display: none; }
-.tap-dialog__foot { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.1rem 1.75rem 1.5rem; border-top: 1px solid var(--border); }
-.tap-dialog__message { margin: 0; font-size: clamp(1.1rem, 2vw, 1.35rem); font-weight: 600; line-height: 1.4; }
+.tap-card__visual.has-photo .tap-card__icon .icon { width: 22px; height: 22px; }
 
-/* Mode "utamakan tampilan" (mis. siswa tunarungu): bingkai tebal berdenyut pelan (1×/detik). */
-.tap-overlay.is-visual-emphasis .tap-dialog { box-shadow: 0 0 0 8px var(--tap), var(--shadow-lg); animation: dialog-in .2s ease-out, dialog-pulse 1s .25s ease-out 6; }
-.tap-overlay.is-visual-emphasis .tap-dialog__status { padding-block: 1.5rem; }
+.tap-card__name { margin: 0; font-size: clamp(1.6rem, 4vw, 2.1rem); font-weight: 700; line-height: 1.15; letter-spacing: -.02em; overflow-wrap: anywhere; }
+.tap-card__meta { margin: .4rem 0 0; color: var(--muted); }
+.tap-card__meta:empty { display: none; }
+.tap-card__status {
+    margin: 1.25rem 0 0;
+    font-size: 1.25rem; font-weight: 700;
+    color: var(--tap);
+}
+.tap-card__status.is-hidden { display: none; }
+.tap-card__time { font-variant-numeric: tabular-nums; }
+.tap-card__time:not(:empty)::before { content: " · pukul "; font-weight: 600; }
+.tap-card__message { margin: .35rem 0 0; max-width: 34ch; color: var(--muted); font-size: 1.05rem; }
+.tap-card__close { min-width: 160px; margin-top: 1.75rem; }
+.tap-card__hint { margin: .5rem 0 0; font-size: .8rem; color: var(--muted); }
 
-@keyframes dialog-in { from { transform: translateY(12px) scale(.98); opacity: 0; } to { transform: none; opacity: 1; } }
-@keyframes dialog-pulse {
-    0% { box-shadow: 0 0 0 8px var(--tap), 0 0 0 8px color-mix(in srgb, var(--tap) 60%, transparent), var(--shadow-lg); }
-    100% { box-shadow: 0 0 0 8px var(--tap), 0 0 0 36px transparent, var(--shadow-lg); }
+/* Garis tipis di bawah kartu yang menyusut: penanda kapan jendela tertutup sendiri. */
+.tap-card__timer {
+    position: absolute; left: 0; bottom: 0;
+    width: 100%; height: 4px;
+    background: var(--tap);
+    transform-origin: left;
+    animation: tap-timer var(--tap-duration, 5s) linear forwards;
+}
+
+/* Mode "utamakan tampilan" (mis. siswa tunarungu): cincin ikon berdenyut pelan (1×/detik). */
+.tap-overlay.is-visual-emphasis .tap-card { box-shadow: 0 0 0 4px var(--tap), var(--shadow-lg); }
+.tap-overlay.is-visual-emphasis .tap-card__icon,
+.tap-overlay.is-visual-emphasis .tap-card__photo img { animation: tap-pulse 1s .2s ease-out 6; }
+
+@keyframes tap-in { from { transform: translateY(10px) scale(.97); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes tap-timer { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+@keyframes tap-pulse {
+    0% { box-shadow: 0 0 0 10px var(--tap-soft), 0 0 0 10px color-mix(in srgb, var(--tap) 45%, transparent); }
+    100% { box-shadow: 0 0 0 10px var(--tap-soft), 0 0 0 34px transparent; }
 }
 
 /* ---------- Detail siswa ---------- */
@@ -728,13 +757,13 @@ html[data-contrast="high"] .tap-dialog__status { color: #000; }
     .photo-field { flex-direction: column; }
     .page-head { align-items: flex-start; }
     .month-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .tap-dialog__status { padding: 1rem 1.25rem; }
-    .tap-dialog__body { flex-direction: column; text-align: center; padding: 1.5rem 1.25rem 1rem; }
-    .tap-dialog__foot { flex-direction: column; align-items: stretch; text-align: center; padding: 1rem 1.25rem 1.25rem; }
+    .tap-card { padding: 2rem 1.25rem 1.5rem; }
+    .tap-card__close { width: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation: none !important; transition: none !important; }
+    .tap-card__timer { display: none; }
 }
 
 /* ---------- Cetak ---------- */

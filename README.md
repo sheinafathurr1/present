@@ -24,8 +24,11 @@ ke server yang sama dan log menunjukkan di PC siapa kartu ditempel.
 ## Fitur
 
 **Saat kartu ditempel di PC guru**
-- Jendela hasil besar di tengah layar: pita warna status dengan ikon dan kata
-  (Masuk / Terlambat / Pulang), jam, **nama**, kelas, dan **foto** siswa.
+- Kartu ringkas di tengah layar: ikon bulat berwarna status, **nama**, kelas & NIS,
+  status dengan jam (Masuk / Terlambat / Pulang), dan sapaan. Bila siswa punya **foto**,
+  foto tampil dengan ikon status di sudutnya. Kartu tertutup sendiri (ada garis
+  penanda waktu) atau dengan tombol Tutup / Esc. Kartu yang belum terdaftar
+  menampilkan nomor kartunya agar mudah didaftarkan.
 - Umpan balik **ganda**: nada bunyi + **suara ucapan bahasa Indonesia** + tampilan.
 - **Mode per siswa**:
   - *Utamakan suara* (mis. tunanetra): kalimat lebih lengkap & lambat, menyebut jam

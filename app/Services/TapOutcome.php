@@ -121,6 +121,7 @@ final readonly class TapOutcome
         return [
             'ok' => $this->result->isRecorded(),
             'result' => $this->result->value,
+            'uid' => $this->uid,
             'tone' => $this->result->tone(),
             'headline' => $this->headline(),
             'message' => $this->message(),

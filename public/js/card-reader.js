@@ -31,8 +31,10 @@
         klass: overlay.querySelector('[data-tap-class]'),
         message: overlay.querySelector('[data-tap-message]'),
         photo: overlay.querySelector('[data-tap-photo]'),
+        timer: overlay.querySelector('[data-tap-timer]'),
         close: overlay.querySelector('[data-tap-close]'),
         announcer: document.querySelector('[data-tap-announcer]'),
+        statusLine: overlay.querySelector('#tap-status'),
         status: document.querySelector('[data-reader-status]'),
         statusLabel: document.querySelector('[data-reader-label]'),
         panelText: document.querySelector('[data-reader-text]'),
@@ -172,19 +174,16 @@
         overlay.classList.remove('is-visual-emphasis');
     }
 
+    /* Foto hanya tampil bila siswa punya foto; ikon status lalu jadi lencana di sudutnya. */
     function setPhoto(student) {
         el.photo.textContent = '';
-        if (student && student.photo_url) {
-            var img = document.createElement('img');
-            img.src = student.photo_url;
-            img.alt = '';
-            el.photo.appendChild(img);
-            return;
-        }
-        var initials = document.createElement('span');
-        initials.className = 'tap-dialog__initials';
-        initials.textContent = student ? student.initials : '?';
-        el.photo.appendChild(initials);
+        var hasPhoto = !!(student && student.photo_url);
+        el.photo.parentNode.classList.toggle('has-photo', hasPhoto);
+        if (!hasPhoto) return;
+        var img = document.createElement('img');
+        img.src = student.photo_url;
+        img.alt = '';
+        el.photo.appendChild(img);
     }
 
     /* Mulai ulang animasi jendela untuk setiap tap baru. */
@@ -203,16 +202,27 @@
         overlay.dataset.tone = tone;
         overlay.classList.toggle('is-visual-emphasis', mode === 'visual');
 
-        el.headline.textContent = data.headline;
-        el.time.textContent = data.time || '';
-        el.name.textContent = student ? student.name : 'Kartu tidak dikenal';
-        el.klass.textContent = student
-            ? [student['class'], student.nis ? 'NIS ' + student.nis : null].filter(Boolean).join(' · ')
-            : 'Minta bantuan guru untuk mendaftarkan kartu ini';
+        var duration = tone === 'error' ? DISPLAY_MS.error : (DISPLAY_MS[mode] || DISPLAY_MS.both);
+
+        if (student) {
+            el.name.textContent = student.name;
+            el.klass.textContent = [student['class'], student.nis ? 'NIS ' + student.nis : null].filter(Boolean).join(' · ');
+            el.headline.textContent = data.headline;
+            el.time.textContent = data.time || '';
+        } else {
+            // Kartu tak dikenal / galat: judulnya langsung keterangan, tanpa baris status ganda.
+            el.name.textContent = data.headline;
+            el.klass.textContent = data.uid ? 'Nomor kartu ' + data.uid : '';
+            el.headline.textContent = '';
+            el.time.textContent = '';
+        }
+        el.statusLine.classList.toggle('is-hidden', !student);
         el.message.textContent = data.message;
         setPhoto(student);
+        el.card.style.setProperty('--tap-duration', duration + 'ms');
         overlay.hidden = false;
         replay(el.card);
+        replay(el.timer);
 
         // Pengumuman untuk pembaca layar (tanpa memindahkan fokus guru).
         el.announcer.textContent = '';
@@ -221,7 +231,6 @@
         playTone(tone);
         if (mode !== 'visual') speak(mode === 'audio' ? data.speech_detailed : data.speech, mode);
 
-        var duration = tone === 'error' ? DISPLAY_MS.error : (DISPLAY_MS[mode] || DISPLAY_MS.both);
         state.hideTimer = setTimeout(hideResult, duration);
     }
 

@@ -109,31 +109,32 @@
 </div>
 <div class="sidebar-backdrop" data-sidebar-backdrop hidden></div>
 
-{{-- Hasil tap kartu: muncul di atas halaman apa pun yang sedang dibuka guru. --}}
+{{-- Hasil tap kartu: kartu ringkas di tengah layar, di atas halaman apa pun yang sedang dibuka guru. --}}
 <div class="tap-overlay" data-tap-overlay hidden>
-    <section class="tap-dialog" data-tap-card aria-labelledby="tap-headline" aria-describedby="tap-message">
-        <header class="tap-dialog__status">
-            <span class="tap-dialog__icon" aria-hidden="true">
-                <span data-icon="success"><x-icon name="check" :size="28" /></span>
-                <span data-icon="warning"><x-icon name="clock" :size="28" /></span>
-                <span data-icon="checkout"><x-icon name="door" :size="28" /></span>
-                <span data-icon="info"><x-icon name="info" :size="28" /></span>
-                <span data-icon="error"><x-icon name="x" :size="28" /></span>
+    <section class="tap-card" data-tap-card aria-labelledby="tap-name" aria-describedby="tap-status tap-message">
+        <div class="tap-card__visual">
+            <div class="tap-card__photo" data-tap-photo></div>
+            <span class="tap-card__icon" aria-hidden="true">
+                <span data-icon="success"><x-icon name="check" :size="40" /></span>
+                <span data-icon="warning"><x-icon name="clock" :size="40" /></span>
+                <span data-icon="checkout"><x-icon name="door" :size="40" /></span>
+                <span data-icon="info"><x-icon name="info" :size="40" /></span>
+                <span data-icon="error"><x-icon name="x" :size="40" /></span>
             </span>
-            <span class="tap-dialog__headline" id="tap-headline" data-tap-headline></span>
-            <span class="tap-dialog__time" data-tap-time></span>
-        </header>
-        <div class="tap-dialog__body">
-            <div class="tap-dialog__photo" data-tap-photo></div>
-            <div class="tap-dialog__who">
-                <p class="tap-dialog__name" data-tap-name></p>
-                <p class="tap-dialog__meta" data-tap-class></p>
-            </div>
         </div>
-        <footer class="tap-dialog__foot">
-            <p class="tap-dialog__message" id="tap-message" data-tap-message></p>
-            <button type="button" class="btn btn--secondary btn--sm" data-tap-close>Tutup <kbd>Esc</kbd></button>
-        </footer>
+
+        <h2 class="tap-card__name" id="tap-name" data-tap-name></h2>
+        <p class="tap-card__meta" data-tap-class></p>
+
+        <p class="tap-card__status" id="tap-status">
+            <span data-tap-headline></span><span class="tap-card__time" data-tap-time></span>
+        </p>
+        <p class="tap-card__message" id="tap-message" data-tap-message></p>
+
+        <button type="button" class="btn btn--secondary tap-card__close" data-tap-close>Tutup</button>
+        <p class="tap-card__hint">atau tekan <kbd>Esc</kbd></p>
+
+        <span class="tap-card__timer" data-tap-timer aria-hidden="true"></span>
     </section>
 </div>
 <div class="sr-only" aria-live="assertive" aria-atomic="true" data-tap-announcer></div>
