@@ -22,6 +22,13 @@ return [
     // Lama log scan kartu disimpan sebelum dihapus otomatis (hari).
     'scan_retention_days' => (int) env('PRESENSI_SCAN_RETENTION_DAYS', 180),
 
+    // Sumber libur nasional & cuti bersama Indonesia (format iCalendar/.ics).
+    // Diperbarui otomatis tiap minggu dan bisa juga lewat tombol di menu Hari Libur.
+    'holiday_calendar_url' => env(
+        'PRESENSI_HOLIDAY_ICS_URL',
+        'https://calendar.google.com/calendar/ical/id.indonesian%23holiday%40group.v.calendar.google.com/public/basic.ics',
+    ),
+
     // Batas permintaan per menit untuk tiap perangkat pembaca kartu.
     'device_rate_limit' => (int) env('PRESENSI_DEVICE_RATE_LIMIT', 120),
 
@@ -32,6 +39,7 @@ return [
         'check_out_start' => '12:00',
         'tap_cooldown_seconds' => 60,
         'school_days' => [1, 2, 3, 4, 5, 6],
+        'joint_holidays_off' => true,
     ],
 
 ];

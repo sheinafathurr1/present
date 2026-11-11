@@ -42,7 +42,7 @@ class MonthlyReport
         $end = $month->endOfMonth();
         $today = CarbonImmutable::today();
 
-        $holidays = Holiday::whereBetween('date', [$start->toDateString(), $end->toDateString()])
+        $holidays = Holiday::off()->whereBetween('date', [$start->toDateString(), $end->toDateString()])
             ->pluck('name', 'date');
 
         for ($date = $start; $date->lte($end); $date = $date->addDay()) {

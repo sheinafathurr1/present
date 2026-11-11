@@ -77,6 +77,12 @@ class SchoolSettings
         return array_values(array_map('intval', (array) $this->get('school_days', [1, 2, 3, 4, 5, 6])));
     }
 
+    /** Apakah cuti bersama dihitung sebagai hari libur sekolah. */
+    public function jointHolidaysAreOff(): bool
+    {
+        return (bool) $this->get('joint_holidays_off', true);
+    }
+
     /** Hari sekolah = termasuk hari aktif dan bukan hari libur. */
     public function isSchoolDay(CarbonInterface $date): bool
     {

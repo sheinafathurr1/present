@@ -54,7 +54,9 @@ ke server yang sama dan log menunjukkan di PC siapa kartu ditempel.
 - **Rekap bulanan** per kelas (H/T/I/S/A, % kehadiran) → cetak atau **unduh CSV untuk Excel**.
 - Data siswa lengkap dengan jenis kekhususan, kontak wali, catatan pendamping, foto.
 - **Impor siswa dari Excel (CSV)**.
-- Kelas dengan jadwal sendiri (mis. SDLB pulang lebih awal), hari libur, hari sekolah.
+- Kelas dengan jadwal sendiri (mis. SDLB pulang lebih awal) dan pilihan hari sekolah.
+- **Libur nasional & cuti bersama terisi otomatis** (lihat bagian *Hari libur nasional*),
+  ditampilkan di **kalender satu tahun** pada menu Hari Libur, ditambah libur sekolah sendiri.
 - Peran pengguna: **Admin** dan **Guru**.
 - Tampilan bisa **diperbesar** (A− A A+) dan ada **mode kontras tinggi**; huruf
   **Plus Jakarta Sans** tersimpan offline; navigasi penuh dengan keyboard; ramah
@@ -80,16 +82,18 @@ kelas boleh punya jadwal sendiri.
 
 ## Kebutuhan
 
-- PHP **8.3.x** dengan ekstensi `pdo_mysql` (atau `pdo_sqlite`), `mbstring`, `intl`,
-  `fileinfo`, `gd`, `openssl`, `zip`
+- PHP **8.3.x** dengan ekstensi `pdo_mysql`, `mbstring`, `intl`, `fileinfo`, `gd`,
+  `openssl`, `zip` (dan `pdo_sqlite` hanya untuk menjalankan tes otomatis)
 - Composer 2
-- MySQL 8 / MariaDB 10.6+ (disarankan) atau SQLite
+- **MySQL 8 / MariaDB 10.6+** (sudah termasuk di Laragon & XAMPP)
 - Tidak perlu Node.js — CSS & JavaScript sudah siap pakai tanpa proses build.
 
 Cocok dijalankan di **Laragon** atau **XAMPP** (Windows) maupun server Linux di
 jaringan lokal sekolah. Aplikasi tidak membutuhkan internet setelah terpasang.
 
 ## Instalasi
+
+Pastikan MySQL/MariaDB sudah berjalan (di Laragon: *Start All*; di XAMPP: *Start* pada MySQL).
 
 ```bash
 git clone <alamat-repo> presensi-sekolah
@@ -100,14 +104,11 @@ cd presensi-sekolah
 ```
 
 ```bash
-composer install
-```
-
-```bash
 cp .env.example .env
 ```
 
-Buka `.env`, lalu sesuaikan:
+Buka `.env`, lalu sesuaikan bila perlu. Bawaannya sudah cocok untuk Laragon/XAMPP
+(user `root` tanpa kata sandi):
 
 ```dotenv
 APP_NAME="Sekolah Contoh"
@@ -122,23 +123,20 @@ DB_USERNAME=root
 DB_PASSWORD=
 ```
 
-Buat database `presensi_sekolah` (mis. lewat phpMyAdmin), lalu:
+Lalu jalankan satu perintah ini:
 
 ```bash
-php artisan key:generate
+composer run setup
 ```
 
-```bash
-php artisan migrate --seed
-```
+Perintah tersebut memasang dependensi, membuat kunci aplikasi, **membuat database
+`presensi_sekolah` bila belum ada**, membuat semua tabel beserta **akun admin**, dan
+menautkan folder foto. Kata sandi admin ditampilkan di layar — catat lalu ganti setelah
+login. Anda juga bisa menentukannya sendiri lewat `ADMIN_EMAIL` dan `ADMIN_PASSWORD`
+di `.env` sebelum menjalankan setup.
 
-```bash
-php artisan storage:link
-```
-
-Perintah `migrate --seed` membuat **akun admin** dan menampilkan kata sandinya di
-layar — catat lalu ganti setelah login. Anda juga bisa menentukannya sendiri lewat
-`ADMIN_EMAIL` dan `ADMIN_PASSWORD` di `.env` sebelum menjalankan seed.
+Bila user MySQL Anda tidak boleh membuat database, buat dulu database
+`presensi_sekolah` (collation `utf8mb4_unicode_ci`) lewat phpMyAdmin.
 
 Uji coba cepat:
 
@@ -148,22 +146,66 @@ php artisan serve --host=0.0.0.0 --port=8000
 
 Buka `http://localhost:8000` (atau `http://IP-SERVER:8000` dari komputer lain).
 
-### Data contoh (opsional, jangan di server produksi)
+### Data uji coba
+
+Selama `APP_ENV=local` (bawaan `.env.example`), `composer run setup` dan
+`php artisan db:seed` otomatis mengisi data uji coba:
+
+| Isi | Keterangan |
+|---|---|
+| Akun | `admin@sekolah.test` (admin) dan 4 guru wali kelas: `guru@`, `dewi@`, `agus@`, `rina@sekolah.test`. **Semua kata sandinya `password`.** |
+| Kelas | 4 kelas (SDLB, SMPLB, SMALB) dengan jadwal masuk/pulang berbeda |
+| Siswa | 25 siswa dengan berbagai kebutuhan khusus & mode umpan balik; 2 belum punya kartu, 1 sudah lulus (nonaktif) |
+| Kartu | Nomor pendek `1001`, `1002`, … agar mudah diketik saat mencoba tanpa alat pembaca |
+| Riwayat | Presensi sejak awal bulan lalu: hadir, terlambat, izin, sakit, alpa |
+| Hari ini | Sebagian siswa sudah tap di PC wali kelasnya, 1 izin sakit, 1 tap ganda, dan 1 kartu tak dikenal (`9001`) |
+| Lainnya | 2 hari libur contoh dan 1 pembaca Wi-Fi (tokennya ditampilkan untuk uji API) |
+
+Di akhir proses, layar menampilkan daftar kartu yang **belum tercatat hari ini**. Untuk
+mencoba tanpa pembaca kartu: buka dashboard, klik area kosong, ketik salah satu nomor
+itu, lalu tekan Enter.
+
+Ulangi dari awal (semua data dihapus dan diisi ulang):
 
 ```bash
-php artisan db:seed --class=DemoSeeder
+php artisan migrate:fresh --seed
 ```
 
-Membuat 4 kelas, 25 siswa beserta kartu, riwayat 3 minggu, serta akun
-`guru@sekolah.test` (kata sandi `password`).
+**Untuk dipakai sungguhan di sekolah**, set `APP_ENV=production` di `.env` sebelum
+menjalankan `composer run setup` (atau `php artisan migrate:fresh --seed --force`).
+Hasilnya hanya satu akun admin dengan kata sandi acak, tanpa data uji coba.
 
-Tanpa pembaca kartu pun alur tap bisa dicoba: buka dashboard, klik area kosong,
-ketik nomor kartu seorang siswa (lihat menu Siswa), lalu tekan Enter.
+### Hari libur nasional
+
+Libur nasional dan cuti bersama Indonesia diambil otomatis dari kalender publik
+**"Hari libur di Indonesia"** (Google Kalender):
+
+- saat `composer run setup` / `php artisan db:seed`,
+- otomatis tiap **Senin pukul 05.30** (butuh scheduler, lihat di bawah),
+- atau kapan saja lewat tombol **Perbarui libur nasional** di menu **Hari Libur**, maupun perintah:
+
+```bash
+php artisan presensi:sinkron-libur
+```
+
+Yang diambil hanya hari libur resmi dan cuti bersama; perayaan yang bukan hari libur
+(mis. "1 Ramadan") dilewati. Tanggal yang belum ditetapkan pemerintah ditandai
+**"Belum pasti"** dan ikut diperbarui saat sudah resmi.
+
+- **Cuti bersama** dihitung libur secara bawaan. Ubah di **Pengaturan** bila sekolah tetap masuk.
+- Setiap libur nasional bisa ditandai **"Tetap masuk sekolah"** di menu Hari Libur;
+  pilihan ini tidak hilang saat data diperbarui.
+- Libur sekolah yang Anda tambahkan sendiri tidak pernah ditimpa.
+- **Tanpa internet**, tetap terisi libur yang tanggalnya pasti: Tahun Baru, Wafat Isa Almasih,
+  Paskah, Hari Buruh, Kenaikan Isa Almasih, Hari Lahir Pancasila, 17 Agustus, dan Natal.
+  Idul Fitri, Idul Adha, Imlek, Nyepi, Waisak, dll. baru terisi saat server terhubung internet.
+- Sumber lain berformat `.ics` bisa dipakai lewat `PRESENSI_HOLIDAY_ICS_URL` di `.env`.
 
 ### Penjadwal otomatis
 
 Penandaan **Alpa** otomatis (bawaan pukul 16.00, ubah dengan
-`PRESENSI_ABSENT_MARKING_TIME`) dan pembersihan log lama membutuhkan scheduler.
+`PRESENSI_ABSENT_MARKING_TIME`), pembaruan libur nasional tiap minggu, dan pembersihan
+log lama membutuhkan scheduler.
 
 Linux (crontab):
 
