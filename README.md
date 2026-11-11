@@ -144,17 +144,34 @@ php artisan serve --host=0.0.0.0 --port=8000
 
 Buka `http://localhost:8000` (atau `http://IP-SERVER:8000` dari komputer lain).
 
-### Data contoh (opsional, jangan di server produksi)
+### Data uji coba
+
+Selama `APP_ENV=local` (bawaan `.env.example`), `composer run setup` dan
+`php artisan db:seed` otomatis mengisi data uji coba:
+
+| Isi | Keterangan |
+|---|---|
+| Akun | `admin@sekolah.test` (admin) dan 4 guru wali kelas: `guru@`, `dewi@`, `agus@`, `rina@sekolah.test`. **Semua kata sandinya `password`.** |
+| Kelas | 4 kelas (SDLB, SMPLB, SMALB) dengan jadwal masuk/pulang berbeda |
+| Siswa | 25 siswa dengan berbagai kebutuhan khusus & mode umpan balik; 2 belum punya kartu, 1 sudah lulus (nonaktif) |
+| Kartu | Nomor pendek `1001`, `1002`, … agar mudah diketik saat mencoba tanpa alat pembaca |
+| Riwayat | Presensi sejak awal bulan lalu: hadir, terlambat, izin, sakit, alpa |
+| Hari ini | Sebagian siswa sudah tap di PC wali kelasnya, 1 izin sakit, 1 tap ganda, dan 1 kartu tak dikenal (`9001`) |
+| Lainnya | 2 hari libur contoh dan 1 pembaca Wi-Fi (tokennya ditampilkan untuk uji API) |
+
+Di akhir proses, layar menampilkan daftar kartu yang **belum tercatat hari ini**. Untuk
+mencoba tanpa pembaca kartu: buka dashboard, klik area kosong, ketik salah satu nomor
+itu, lalu tekan Enter.
+
+Ulangi dari awal (semua data dihapus dan diisi ulang):
 
 ```bash
-php artisan db:seed --class=DemoSeeder
+php artisan migrate:fresh --seed
 ```
 
-Membuat 4 kelas, 25 siswa beserta kartu, riwayat 3 minggu, serta akun
-`guru@sekolah.test` (kata sandi `password`).
-
-Tanpa pembaca kartu pun alur tap bisa dicoba: buka dashboard, klik area kosong,
-ketik nomor kartu seorang siswa (lihat menu Siswa), lalu tekan Enter.
+**Untuk dipakai sungguhan di sekolah**, set `APP_ENV=production` di `.env` sebelum
+menjalankan `composer run setup` (atau `php artisan migrate:fresh --seed --force`).
+Hasilnya hanya satu akun admin dengan kata sandi acak, tanpa data uji coba.
 
 ### Penjadwal otomatis
 

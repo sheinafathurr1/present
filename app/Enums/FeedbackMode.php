@@ -14,7 +14,7 @@ enum FeedbackMode: string
     /** Diutamakan suara: kalimat lebih lengkap dan lebih lambat (mis. siswa tunanetra). */
     case Audio = 'audio';
 
-    /** Tanpa suara ucapan: layar berkedip & tampil lebih lama (mis. siswa tunarungu). */
+    /** Tanpa suara ucapan: bingkai berdenyut pelan & tampil lebih lama (mis. siswa tunarungu). */
     case Visual = 'visual';
 
     public function label(): string
@@ -22,7 +22,7 @@ enum FeedbackMode: string
         return match ($this) {
             self::Both => 'Suara dan tampilan layar',
             self::Audio => 'Utamakan suara (lebih jelas & lambat)',
-            self::Visual => 'Utamakan tampilan (layar berkedip, tanpa ucapan)',
+            self::Visual => 'Utamakan tampilan (tanpa ucapan, tampil lebih lama)',
         };
     }
 }
