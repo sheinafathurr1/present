@@ -14,23 +14,19 @@ use Illuminate\View\View;
 
 /**
  * Halaman utama guru. Biasanya dibiarkan terbuka di PC guru yang tersambung
- * ke pembaca kartu USB, sehingga angka & daftar diperbarui otomatis.
+ * ke pembaca kartu USB, sehingga angka diperbarui otomatis setelah setiap tap.
  */
 class DashboardController extends Controller
 {
-    private const MISSING_LIMIT = 12;
-
     public function index(SchoolSettings $settings): View
     {
         $today = today();
-        $summary = new DailySummary($today->toDateString());
 
         return view('dashboard.index', [
             'today' => $today,
             'isSchoolDay' => $settings->isSchoolDay($today),
-            'summary' => $summary,
+            'summary' => new DailySummary($today->toDateString()),
             'recentScans' => $this->recentScans(),
-            'missing' => $this->missingStudents(),
             'trend' => $this->trend($settings),
             'unregisteredCount' => Student::active()->whereNull('rfid_uid')->count(),
         ]);
@@ -44,6 +40,15 @@ class DashboardController extends Controller
         return response()->json([
             'totals' => $summary->totals,
             'percentage' => $summary->percentage(),
+            'classes' => $summary->classes->map(fn (array $row) => [
+                'id' => $row['class']->id,
+                'present' => $row['present'],
+                'total' => $row['total'],
+                'terlambat' => $row['terlambat'],
+                'izin_sakit' => $row['izin'] + $row['sakit'],
+                'unrecorded' => $row['unrecorded'],
+                'percentage' => $row['total'] > 0 ? (int) round($row['present'] / $row['total'] * 100) : 0,
+            ])->values(),
             'scans' => $this->recentScans()->map(fn (RfidScan $scan) => [
                 'id' => $scan->id,
                 'time' => $scan->scanned_at->format('H.i'),
@@ -52,12 +57,6 @@ class DashboardController extends Controller
                 'result' => $scan->result->label(),
                 'tone' => $scan->result->tone(),
                 'source' => $scan->sourceName(),
-            ])->values(),
-            'missing' => $this->missingStudents()->map(fn (Student $student) => [
-                'id' => $student->id,
-                'name' => $student->name,
-                'class' => $student->schoolClass?->name,
-                'url' => route('students.show', $student),
             ])->values(),
         ]);
     }
@@ -68,23 +67,7 @@ class DashboardController extends Controller
         return RfidScan::with(['student.schoolClass', 'device', 'user'])
             ->latest('scanned_at')
             ->latest('id')
-            ->limit(8)
-            ->get();
-    }
-
-    /**
-     * Siswa aktif yang hari ini belum punya catatan presensi sama sekali.
-     *
-     * @return Collection<int, Student>
-     */
-    private function missingStudents(): Collection
-    {
-        return Student::active()
-            ->with('schoolClass')
-            ->whereDoesntHave('attendances', fn ($query) => $query->where('date', today()->toDateString()))
-            ->orderBy('school_class_id')
-            ->orderBy('name')
-            ->limit(self::MISSING_LIMIT)
+            ->limit(6)
             ->get();
     }
 
@@ -114,6 +97,7 @@ class DashboardController extends Controller
                 'count' => $count,
                 'percentage' => (int) round($count / $total * 100),
                 'school_day' => $settings->isSchoolDay($day),
+                'today' => $day->isToday(),
             ];
         });
     }

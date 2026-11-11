@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Attendance;
 use App\Models\RfidScan;
+use App\Models\SchoolClass;
 use App\Models\Student;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -58,23 +59,29 @@ class TeacherPcTapTest extends TestCase
         $this->actingAs(User::factory()->create())->postJson('/tap', ['uid' => '---'])->assertUnprocessable();
     }
 
-    public function test_dashboard_shows_reader_panel_and_students_not_yet_present(): void
+    public function test_dashboard_shows_today_numbers_per_class(): void
     {
         $this->travelTo(now()->setDate(2026, 11, 11)->setTime(7, 30));
-        Student::factory()->create(['name' => 'Budi Santoso']);
-        $present = Student::factory()->create(['name' => 'Siti Aminah']);
+        $class = SchoolClass::factory()->create(['name' => 'Kelas 1A', 'level' => 'SDLB']);
+        Student::factory()->create(['school_class_id' => $class->id]);
+        $present = Student::factory()->create(['school_class_id' => $class->id]);
         Attendance::factory()->create(['student_id' => $present->id, 'date' => '2026-11-11']);
 
         $this->actingAs(User::factory()->create())
             ->get('/dashboard')
             ->assertOk()
             ->assertSee('Siap menerima kartu')
-            ->assertSee('Belum presensi hari ini');
+            ->assertSee('Kehadiran hari ini')
+            ->assertSee('Kelas 1A')
+            ->assertDontSee('SLB');
 
         $this->getJson('/dashboard/live')
             ->assertOk()
-            ->assertJsonCount(1, 'missing')
-            ->assertJsonPath('missing.0.name', 'Budi Santoso');
+            ->assertJsonPath('totals.present', 1)
+            ->assertJsonPath('totals.unrecorded', 1)
+            ->assertJsonPath('classes.0.id', $class->id)
+            ->assertJsonPath('classes.0.present', 1)
+            ->assertJsonPath('classes.0.percentage', 50);
     }
 
     public function test_heartbeat_keeps_session_alive(): void

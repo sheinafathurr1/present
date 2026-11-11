@@ -2,12 +2,12 @@
     "$schema": "https://getcomposer.org/schema.json",
     "name": "sekolah/presensi-rfid",
     "type": "project",
-    "description": "Aplikasi presensi berbasis kartu RFID untuk Sekolah Luar Biasa (SLB), dengan dashboard Laravel.",
+    "description": "Aplikasi presensi siswa berbasis kartu RFID dengan dashboard Laravel.",
     "keywords": [
         "laravel",
         "presensi",
         "rfid",
-        "slb",
+        "sekolah",
         "aksesibilitas"
     ],
     "license": "MIT",

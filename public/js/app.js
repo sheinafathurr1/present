@@ -1,5 +1,5 @@
 /*
- * Presensi SLB — skrip dashboard (tanpa framework, tanpa build).
+ * Presensi Sekolah — skrip dashboard (tanpa framework, tanpa build).
  */
 (function () {
     'use strict';
@@ -177,9 +177,6 @@
         var url = live.dataset.liveUrl;
         var feed = live.querySelector('[data-feed]');
         var indicator = live.querySelector('[data-live-status]');
-        var missingList = document.querySelector('[data-missing]');
-        var missingEmpty = document.querySelector('[data-missing-empty]');
-        var missingMore = document.querySelector('[data-missing-more]');
         var seen = {};
         feed.querySelectorAll('[data-scan-id]').forEach(function (item) { seen[item.dataset.scanId] = true; });
 
@@ -202,20 +199,34 @@
             return li;
         };
 
-        var renderMissing = function (students, total) {
-            if (!missingList) return;
-            missingList.textContent = '';
-            students.forEach(function (student) {
-                var li = make('li');
-                var link = make('a', '', student.name);
-                link.href = student.url;
-                li.appendChild(link);
-                li.appendChild(make('span', 'muted', student['class'] || ''));
-                missingList.appendChild(li);
+        var updateNumbers = function (data) {
+            var totals = data.totals;
+            Object.keys(totals).forEach(function (key) {
+                live.querySelectorAll('[data-stat="' + key + '"]').forEach(function (node) { node.textContent = totals[key]; });
+                var seg = live.querySelector('[data-seg="' + key + '"]');
+                if (seg) {
+                    seg.style.flexGrow = totals[key];
+                    seg.classList.toggle('is-empty', totals[key] === 0);
+                }
             });
-            missingList.hidden = students.length === 0;
-            if (missingEmpty) missingEmpty.hidden = students.length > 0;
-            if (missingMore) missingMore.hidden = total <= students.length;
+            live.querySelectorAll('[data-stat="percentage"]').forEach(function (node) { node.textContent = data.percentage; });
+            var todayLabel = live.querySelector('[data-stat="percentage-label"]');
+            if (todayLabel) todayLabel.textContent = data.percentage + '%';
+            var todayFill = live.querySelector('[data-trend-today]');
+            if (todayFill) todayFill.style.height = Math.max(2, data.percentage) + '%';
+        };
+
+        var updateClasses = function (classes) {
+            (classes || []).forEach(function (row) {
+                var tr = live.querySelector('[data-class-row="' + row.id + '"]');
+                if (!tr) return;
+                ['present', 'total', 'terlambat', 'izin_sakit', 'unrecorded'].forEach(function (key) {
+                    var cell = tr.querySelector('[data-class-stat="' + key + '"]');
+                    if (cell) cell.textContent = row[key];
+                });
+                var bar = tr.querySelector('[data-class-bar]');
+                if (bar) bar.style.width = row.percentage + '%';
+            });
         };
 
         var refresh = function () {
@@ -225,14 +236,8 @@
                     return response.json();
                 })
                 .then(function (data) {
-                    Object.keys(data.totals).forEach(function (key) {
-                        document.querySelectorAll('[data-stat="' + key + '"]').forEach(function (node) {
-                            node.textContent = data.totals[key];
-                        });
-                    });
-                    document.querySelectorAll('[data-stat="percentage"]').forEach(function (node) { node.textContent = data.percentage; });
-                    var meter = live.querySelector('[data-meter]');
-                    if (meter) meter.style.width = data.percentage + '%';
+                    updateNumbers(data);
+                    updateClasses(data.classes);
 
                     var fresh = data.scans.filter(function (scan) { return !seen[scan.id]; });
                     if (fresh.length) {
@@ -244,14 +249,12 @@
                             item.classList.add('is-new');
                             feed.insertBefore(item, feed.firstChild);
                         });
-                        while (feed.children.length > 8) feed.removeChild(feed.lastChild);
+                        while (feed.children.length > 6) feed.removeChild(feed.lastChild);
                     }
-
-                    renderMissing(data.missing, data.totals.unrecorded);
 
                     if (indicator) {
                         indicator.classList.remove('is-error');
-                        indicator.lastChild.textContent = ' Diperbarui otomatis';
+                        indicator.lastChild.textContent = ' Langsung';
                     }
                 })
                 .catch(function () {

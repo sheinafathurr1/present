@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\Device;
+use App\Models\SchoolClass;
+use App\Models\Student;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -67,12 +69,15 @@ class AccessControlTest extends TestCase
     {
         $admin = User::factory()->admin()->create();
         $device = Device::factory()->create();
+        $class = SchoolClass::factory()->create(['level' => 'SDLB']);
+        $student = Student::factory()->create(['school_class_id' => $class->id]);
 
         $this->actingAs($admin);
 
         foreach (['/dashboard', '/presensi', '/rekap', '/log-scan', '/siswa', '/siswa/tambah', '/siswa/impor',
             '/kelas', '/kelas/tambah', '/perangkat', '/perangkat/tambah', "/perangkat/{$device->id}/ubah",
-            '/hari-libur', '/pengguna', '/pengguna/tambah', '/pengaturan'] as $url) {
+            '/hari-libur', '/pengguna', '/pengguna/tambah', '/pengaturan', "/siswa/{$student->id}",
+            "/siswa/{$student->id}/ubah", "/kelas/{$class->id}/ubah", "/rekap?kelas={$class->id}"] as $url) {
             $this->get($url)->assertOk();
         }
     }

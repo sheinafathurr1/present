@@ -39,14 +39,12 @@ enum AttendanceStatus: string
         return in_array($this, [self::Hadir, self::Terlambat], true);
     }
 
-    /** Nama kelas CSS untuk badge status. */
+    /**
+     * Nama warna status di CSS (--hadir, --terlambat, --izin, --sakit, --alpa).
+     * Setiap status punya warna sendiri, dan selalu disertai huruf/kata.
+     */
     public function tone(): string
     {
-        return match ($this) {
-            self::Hadir => 'success',
-            self::Terlambat => 'warning',
-            self::Izin, self::Sakit => 'info',
-            self::Alpa => 'danger',
-        };
+        return $this->value;
     }
 }

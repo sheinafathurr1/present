@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\AttendanceStatus;
 use App\Enums\DisabilityType;
 use App\Enums\FeedbackMode;
 use App\Enums\ScanResult;
@@ -51,8 +52,16 @@ class StudentController extends Controller
     {
         $student->load('schoolClass.homeroomTeacher');
 
+        $monthCounts = $student->attendances()
+            ->whereBetween('date', [now()->startOfMonth()->toDateString(), now()->endOfMonth()->toDateString()])
+            ->pluck('status')
+            ->countBy(fn (AttendanceStatus $status) => $status->value);
+
         return view('students.show', [
             'student' => $student,
+            'todayAttendance' => $student->attendances()->where('date', today()->toDateString())->first(),
+            'monthCounts' => $monthCounts,
+            'statuses' => AttendanceStatus::cases(),
             'attendances' => $student->attendances()->with(['checkInDevice', 'checkOutDevice', 'recorder'])
                 ->orderByDesc('date')->paginate(20),
         ]);

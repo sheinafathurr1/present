@@ -3,7 +3,7 @@
 namespace App\Enums;
 
 /**
- * Kategori kekhususan siswa mengikuti penggolongan yang umum dipakai SLB.
+ * Kategori kebutuhan khusus siswa (penggolongan yang umum dipakai di Indonesia).
  */
 enum DisabilityType: string
 {

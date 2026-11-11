@@ -1,4 +1,4 @@
-# Presensi SLB — Presensi Kartu RFID untuk Sekolah Luar Biasa
+# Presensi Sekolah — Presensi Kartu RFID
 
 Aplikasi web presensi siswa memakai kartu RFID, dengan dashboard **Laravel 13**
 (berjalan di **PHP 8.3**). Layar presensi dan dashboard dirancang untuk siswa
@@ -24,8 +24,8 @@ ke server yang sama dan log menunjukkan di PC siapa kartu ditempel.
 ## Fitur
 
 **Saat kartu ditempel di PC guru**
-- Jendela hasil besar di tengah layar: warna, ikon, kata (MASUK / TERLAMBAT / PULANG),
-  **nama panggilan**, kelas, dan **foto** siswa — mudah dikenali siswa tunagrahita & autis.
+- Jendela hasil besar di tengah layar: pita warna status dengan ikon dan kata
+  (Masuk / Terlambat / Pulang), jam, **nama**, kelas, dan **foto** siswa.
 - Umpan balik **ganda**: nada bunyi + **suara ucapan bahasa Indonesia** + tampilan.
 - **Mode per siswa**:
   - *Utamakan suara* (mis. tunanetra): kalimat lebih lengkap & lambat, menyebut jam
@@ -54,8 +54,9 @@ ke server yang sama dan log menunjukkan di PC siapa kartu ditempel.
 - Kelas dengan jadwal sendiri (mis. SDLB pulang lebih awal), hari libur, hari sekolah.
 - Peran pengguna: **Admin** dan **Guru**.
 - Tampilan bisa **diperbesar** (A− A A+) dan ada **mode kontras tinggi**; huruf
-  **Atkinson Hyperlegible** (dirancang Braille Institute untuk low vision) tersimpan
-  offline; navigasi penuh dengan keyboard; ramah pembaca layar.
+  **Plus Jakarta Sans** tersimpan offline; navigasi penuh dengan keyboard; ramah
+  pembaca layar.
+- Warna & huruf diatur di satu tempat: bagian `:root` di `public/css/app.css`.
 
 **Opsional:** pembaca kartu mandiri **ESP32 + RC522** lewat Wi-Fi (mis. untuk pintu
 asrama) — contoh program & skema di [`hardware/`](hardware/README.md).
@@ -88,11 +89,11 @@ jaringan lokal sekolah. Aplikasi tidak membutuhkan internet setelah terpasang.
 ## Instalasi
 
 ```bash
-git clone <alamat-repo> presensi-slb
+git clone <alamat-repo> presensi-sekolah
 ```
 
 ```bash
-cd presensi-slb
+cd presensi-sekolah
 ```
 
 ```bash
@@ -106,19 +107,19 @@ cp .env.example .env
 Buka `.env`, lalu sesuaikan:
 
 ```dotenv
-APP_NAME="SLB Negeri Contoh"
+APP_NAME="Sekolah Contoh"
 APP_URL=http://192.168.1.10        # alamat server di jaringan sekolah
 APP_TIMEZONE=Asia/Jakarta          # WITA: Asia/Makassar, WIT: Asia/Jayapura
 
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
-DB_DATABASE=presensi_slb
+DB_DATABASE=presensi_sekolah
 DB_USERNAME=root
 DB_PASSWORD=
 ```
 
-Buat database `presensi_slb` (mis. lewat phpMyAdmin), lalu:
+Buat database `presensi_sekolah` (mis. lewat phpMyAdmin), lalu:
 
 ```bash
 php artisan key:generate
@@ -164,12 +165,12 @@ Penandaan **Alpa** otomatis (bawaan pukul 16.00, ubah dengan
 Linux (crontab):
 
 ```bash
-* * * * * cd /var/www/presensi-slb && php artisan schedule:run >> /dev/null 2>&1
+* * * * * cd /var/www/presensi-sekolah && php artisan schedule:run >> /dev/null 2>&1
 ```
 
 Windows: buat tugas di **Task Scheduler** yang berjalan tiap 1 menit dengan
 program `C:\laragon\bin\php\php-8.3.x\php.exe` dan argumen
-`C:\laragon\www\presensi-slb\artisan schedule:run`.
+`C:\laragon\www\presensi-sekolah\artisan schedule:run`.
 
 Tanpa scheduler pun aplikasi tetap berjalan; penandaan Alpa bisa dilakukan lewat
 tombol di halaman **Presensi Harian** atau perintah:

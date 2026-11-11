@@ -32,13 +32,13 @@
 
 <div class="shell">
     <aside class="sidebar" id="sidebar" aria-label="Menu utama">
-        <div class="brand">
-            <span class="brand__mark" aria-hidden="true"><x-icon name="card" :size="22" /></span>
+        <a class="brand" href="{{ route('dashboard') }}">
+            @include('partials.brand-mark')
             <span class="brand__text">
                 <strong>{{ $schoolSettings->schoolName() }}</strong>
-                <span>Presensi Kartu RFID</span>
+                <span>Presensi kartu RFID</span>
             </span>
-        </div>
+        </a>
 
         <nav class="nav">
             @foreach ($nav as $group => $items)
@@ -58,6 +58,20 @@
                 @endif
             @endforeach
         </nav>
+
+        <div class="sidebar__user">
+            <span class="sidebar__avatar" aria-hidden="true">{{ mb_strtoupper(mb_substr($user->name, 0, 1)) }}</span>
+            <span class="sidebar__who">
+                <strong>{{ $user->name }}</strong>
+                <span>{{ $user->role->label() }}</span>
+            </span>
+            <form method="POST" action="{{ route('logout') }}">
+                @csrf
+                <button type="submit" class="btn btn--ghost btn--icon" title="Keluar">
+                    <x-icon name="logout" :size="18" /><span class="sr-only">Keluar</span>
+                </button>
+            </form>
+        </div>
     </aside>
 
     <div class="main-col">
@@ -68,34 +82,22 @@
 
             <div class="reader-tools" role="group" aria-label="Pembaca kartu">
                 <span class="reader-status" data-reader-status>
-                    <span class="dot dot--success" aria-hidden="true"></span>
-                    <span data-reader-label>Pembaca kartu siap</span>
+                    <span class="reader-status__dot" aria-hidden="true"></span>
+                    <span data-reader-label>Siap menerima kartu</span>
                 </span>
                 <button type="button" class="btn btn--ghost btn--sm" data-sound-toggle aria-pressed="true">
-                    <span data-when="on"><x-icon name="volume" :size="18" /> Suara</span>
-                    <span data-when="off"><x-icon name="volume-off" :size="18" /> Suara mati</span>
+                    <span data-when="on"><x-icon name="volume" :size="18" /> <span class="topbar__label">Suara aktif</span></span>
+                    <span data-when="off"><x-icon name="volume-off" :size="18" /> <span class="topbar__label">Suara mati</span></span>
                 </button>
             </div>
 
             <div class="a11y-tools" role="group" aria-label="Pengaturan tampilan">
-                <span class="a11y-tools__label" aria-hidden="true"><x-icon name="text-size" :size="18" /></span>
                 <button type="button" class="btn btn--ghost btn--sm" data-text-size="down" title="Perkecil teks">A−<span class="sr-only"> Perkecil teks</span></button>
                 <button type="button" class="btn btn--ghost btn--sm" data-text-size="reset" title="Ukuran teks normal">A<span class="sr-only"> Ukuran teks normal</span></button>
                 <button type="button" class="btn btn--ghost btn--sm" data-text-size="up" title="Perbesar teks">A+<span class="sr-only"> Perbesar teks</span></button>
                 <button type="button" class="btn btn--ghost btn--sm" data-contrast-toggle aria-pressed="false">
-                    <x-icon name="contrast" :size="18" /> <span>Kontras tinggi</span>
+                    <x-icon name="contrast" :size="18" /> <span class="topbar__label">Kontras tinggi</span>
                 </button>
-            </div>
-
-            <div class="topbar__user">
-                <span class="topbar__name">
-                    <strong>{{ $user->name }}</strong>
-                    <span>{{ $user->role->label() }}</span>
-                </span>
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button type="submit" class="btn btn--secondary btn--sm"><x-icon name="logout" :size="18" /> Keluar</button>
-                </form>
             </div>
         </header>
 
@@ -109,26 +111,29 @@
 
 {{-- Hasil tap kartu: muncul di atas halaman apa pun yang sedang dibuka guru. --}}
 <div class="tap-overlay" data-tap-overlay hidden>
-    <section class="tap-card" data-tap-card aria-labelledby="tap-headline" aria-describedby="tap-message">
-        <div class="tap-card__visual">
-            <div class="tap-card__icon">
-                <span data-icon="success"><x-icon name="check" :size="96" /></span>
-                <span data-icon="warning"><x-icon name="clock" :size="96" /></span>
-                <span data-icon="checkout"><x-icon name="door" :size="96" /></span>
-                <span data-icon="info"><x-icon name="info" :size="96" /></span>
-                <span data-icon="error"><x-icon name="x" :size="96" /></span>
+    <section class="tap-dialog" data-tap-card aria-labelledby="tap-headline" aria-describedby="tap-message">
+        <header class="tap-dialog__status">
+            <span class="tap-dialog__icon" aria-hidden="true">
+                <span data-icon="success"><x-icon name="check" :size="28" /></span>
+                <span data-icon="warning"><x-icon name="clock" :size="28" /></span>
+                <span data-icon="checkout"><x-icon name="door" :size="28" /></span>
+                <span data-icon="info"><x-icon name="info" :size="28" /></span>
+                <span data-icon="error"><x-icon name="x" :size="28" /></span>
+            </span>
+            <span class="tap-dialog__headline" id="tap-headline" data-tap-headline></span>
+            <span class="tap-dialog__time" data-tap-time></span>
+        </header>
+        <div class="tap-dialog__body">
+            <div class="tap-dialog__photo" data-tap-photo></div>
+            <div class="tap-dialog__who">
+                <p class="tap-dialog__name" data-tap-name></p>
+                <p class="tap-dialog__meta" data-tap-class></p>
             </div>
-            <div class="tap-card__photo" data-tap-photo></div>
         </div>
-        <div class="tap-card__text">
-            <p class="tap-card__headline" id="tap-headline" data-tap-headline></p>
-            <p class="tap-card__name" data-tap-name></p>
-            <p class="tap-card__class" data-tap-class></p>
-            <p class="tap-card__message" id="tap-message" data-tap-message></p>
-        </div>
-        <button type="button" class="tap-card__close" data-tap-close>
-            <x-icon name="x" :size="20" /> Tutup <kbd>Esc</kbd>
-        </button>
+        <footer class="tap-dialog__foot">
+            <p class="tap-dialog__message" id="tap-message" data-tap-message></p>
+            <button type="button" class="btn btn--secondary btn--sm" data-tap-close>Tutup <kbd>Esc</kbd></button>
+        </footer>
     </section>
 </div>
 <div class="sr-only" aria-live="assertive" aria-atomic="true" data-tap-announcer></div>

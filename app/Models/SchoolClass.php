@@ -17,6 +17,14 @@ class SchoolClass extends Model
 
     public const LEVELS = ['TKLB', 'SDLB', 'SMPLB', 'SMALB'];
 
+    /** Urutan tampil: TKLB, SDLB, SMPLB, SMALB, lalu yang tanpa jenjang. */
+    public function levelOrder(): int
+    {
+        $index = array_search($this->level, self::LEVELS, true);
+
+        return $index === false ? count(self::LEVELS) : $index;
+    }
+
     /** @return BelongsTo<User, $this> */
     public function homeroomTeacher(): BelongsTo
     {

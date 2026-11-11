@@ -134,6 +134,8 @@ final readonly class TapOutcome
                 'call_name' => $student->callName(),
                 'initials' => $student->initials(),
                 'class' => $student->schoolClass?->name,
+                'level' => $student->schoolClass?->level,
+                'nis' => $student->nis,
                 'photo_url' => $student->photoUrl(),
                 'feedback_mode' => $student->feedback_mode->value,
             ] : null,

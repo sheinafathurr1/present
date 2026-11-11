@@ -38,7 +38,8 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('tap', fn (Request $request) => Limit::perMinute(120)
             ->by('tap:'.$request->user()?->id.'|'.$request->ip()));
 
-        View::composer(['layouts.*', 'auth.*'], function ($view) {
+        // Nama sekolah & pengaturan tersedia di semua tampilan (dibaca saat dipakai saja).
+        View::composer('*', function ($view) {
             $view->with('schoolSettings', $this->app->make(SchoolSettings::class));
         });
     }

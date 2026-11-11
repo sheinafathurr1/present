@@ -26,6 +26,7 @@
     var el = {
         card: overlay.querySelector('[data-tap-card]'),
         headline: overlay.querySelector('[data-tap-headline]'),
+        time: overlay.querySelector('[data-tap-time]'),
         name: overlay.querySelector('[data-tap-name]'),
         klass: overlay.querySelector('[data-tap-class]'),
         message: overlay.querySelector('[data-tap-message]'),
@@ -173,18 +174,24 @@
 
     function setPhoto(student) {
         el.photo.textContent = '';
-        if (!student) return;
-        if (student.photo_url) {
+        if (student && student.photo_url) {
             var img = document.createElement('img');
             img.src = student.photo_url;
             img.alt = '';
             el.photo.appendChild(img);
-        } else {
-            var initials = document.createElement('span');
-            initials.className = 'tap-card__initials';
-            initials.textContent = student.initials;
-            el.photo.appendChild(initials);
+            return;
         }
+        var initials = document.createElement('span');
+        initials.className = 'tap-dialog__initials';
+        initials.textContent = student ? student.initials : '?';
+        el.photo.appendChild(initials);
+    }
+
+    /* Mulai ulang animasi jendela untuk setiap tap baru. */
+    function replay(node) {
+        node.style.animation = 'none';
+        void node.offsetWidth;
+        node.style.animation = '';
     }
 
     function showResult(data) {
@@ -197,11 +204,15 @@
         overlay.classList.toggle('is-visual-emphasis', mode === 'visual');
 
         el.headline.textContent = data.headline;
-        el.name.textContent = student ? student.name : '';
-        el.klass.textContent = student && student['class'] ? student['class'] : '';
+        el.time.textContent = data.time || '';
+        el.name.textContent = student ? student.name : 'Kartu tidak dikenal';
+        el.klass.textContent = student
+            ? [student['class'], student.nis ? 'NIS ' + student.nis : null].filter(Boolean).join(' · ')
+            : 'Minta bantuan guru untuk mendaftarkan kartu ini';
         el.message.textContent = data.message;
         setPhoto(student);
         overlay.hidden = false;
+        replay(el.card);
 
         // Pengumuman untuk pembaca layar (tanpa memindahkan fokus guru).
         el.announcer.textContent = '';

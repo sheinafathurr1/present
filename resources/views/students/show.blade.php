@@ -3,31 +3,55 @@
 @section('title', $student->name)
 
 @section('content')
-<div class="page-head">
-    <div class="person person--lg">
+<a href="{{ route('students.index') }}" class="back-link"><x-icon name="arrow-left" :size="18" /> Data siswa</a>
+
+<div class="profile-head">
+    @if ($student->photoUrl())
+        <img src="{{ $student->photoUrl() }}" alt="Foto {{ $student->name }}" class="avatar avatar--xl">
+    @else
         <x-avatar :student="$student" :size="72" />
-        <div>
-            <a href="{{ route('students.index') }}" class="back-link"><x-icon name="arrow-left" :size="18" /> Data siswa</a>
-            <h1>{{ $student->name }}</h1>
-            <p class="lead">{{ $student->schoolClass?->name ?? 'Belum ada kelas' }} · NIS {{ $student->nis }}
-                @unless ($student->is_active)<span class="badge badge--muted">Nonaktif</span>@endunless
-            </p>
-        </div>
-    </div>
-    @if (auth()->user()->isAdmin())
-        <div class="actions">
-            <a href="{{ route('students.edit', $student) }}" class="btn btn--primary"><x-icon name="edit" /> Ubah data</a>
-        </div>
     @endif
+    <div class="profile-head__info">
+        <h1>{{ $student->name }}</h1>
+        <p>{{ collect([$student->schoolClass?->name ?? 'Belum ada kelas', 'NIS '.$student->nis])->implode(' · ') }}
+            @unless ($student->is_active) · <span class="badge badge--muted">Nonaktif</span>@endunless</p>
+    </div>
+    <div class="actions">
+        @if (auth()->user()->isAdmin())
+            <a href="{{ route('students.edit', $student) }}" class="btn btn--primary"><x-icon name="edit" :size="18" /> Ubah data</a>
+        @endif
+        <a href="{{ route('reports.monthly', array_filter(['kelas' => $student->school_class_id])) }}" class="btn btn--secondary">Rekap kelas</a>
+    </div>
 </div>
+
+<section class="card" aria-labelledby="bulan-ini">
+    <div class="card__head">
+        <h2 id="bulan-ini" class="card__title">{{ now()->translatedFormat('F Y') }}</h2>
+        <span class="muted small">Hari ini:
+            @if ($todayAttendance)
+                <x-status-badge :status="$todayAttendance->status" />{{ $todayAttendance->check_in_at ? ' pukul '.$todayAttendance->check_in_at->format('H.i') : '' }}
+            @else
+                <x-status-badge :status="null" />
+            @endif
+        </span>
+    </div>
+    <dl class="month-stats">
+        @foreach ($statuses as $status)
+            <div>
+                <dt><span class="swatch swatch--{{ $status->value }}" aria-hidden="true"></span>{{ $status->label() }}</dt>
+                <dd>{{ $monthCounts->get($status->value, 0) }}</dd>
+            </div>
+        @endforeach
+    </dl>
+</section>
 
 <div class="grid-2">
     <section class="card" aria-labelledby="profil">
         <h2 id="profil">Profil</h2>
         <dl class="details">
             <div><dt>Nama panggilan</dt><dd>{{ $student->nickname ?: $student->callName() }}</dd></div>
-            <div><dt>Jenis kelamin</dt><dd>{{ ['L' => 'Laki-laki', 'P' => 'Perempuan'][$student->gender] ?? '—' }}</dd></div>
             <div><dt>NISN</dt><dd>{{ $student->nisn ?: '—' }}</dd></div>
+            <div><dt>Jenis kelamin</dt><dd>{{ ['L' => 'Laki-laki', 'P' => 'Perempuan'][$student->gender] ?? '—' }}</dd></div>
             <div><dt>Wali kelas</dt><dd>{{ $student->schoolClass?->homeroomTeacher?->name ?? '—' }}</dd></div>
             <div><dt>Orang tua/wali</dt><dd>{{ $student->guardian_name ?: '—' }}
                 @if ($student->guardian_phone)<br><a href="tel:{{ preg_replace('/[^0-9+]/', '', $student->guardian_phone) }}">{{ $student->guardian_phone }}</a>@endif</dd></div>
@@ -50,7 +74,6 @@
 <section class="card" aria-labelledby="riwayat">
     <div class="card__head">
         <h2 id="riwayat">Riwayat presensi</h2>
-        <a href="{{ route('reports.monthly', ['kelas' => $student->school_class_id]) }}">Rekap bulanan kelas →</a>
     </div>
     @if ($attendances->isEmpty())
         <p class="empty">Belum ada riwayat presensi.</p>

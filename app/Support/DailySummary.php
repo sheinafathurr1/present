@@ -26,7 +26,8 @@ class DailySummary
 
         $this->totals = $this->count($students, $statusByStudent);
 
-        $this->classes = SchoolClass::orderBy('level')->orderBy('name')->get()
+        $this->classes = SchoolClass::orderBy('name')->get()
+            ->sortBy(fn (SchoolClass $class) => sprintf('%d-%s', $class->levelOrder(), $class->name))
             ->map(fn (SchoolClass $class) => [
                 'class' => $class,
                 ...$this->count($students->where('school_class_id', $class->id), $statusByStudent),

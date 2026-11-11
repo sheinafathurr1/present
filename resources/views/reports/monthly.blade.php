@@ -41,7 +41,7 @@
     <h2 id="judul-rekap" class="print-only">{{ $report->title() }}</h2>
     <ul class="legend" aria-label="Keterangan kode">
         @foreach ($legend as $code => $label)
-            <li><span class="cell-code tone-{{ ['H' => 'success', 'T' => 'warning', 'I' => 'info', 'S' => 'info', 'A' => 'danger'][$code] ?? 'missing' }}" aria-hidden="true">{{ $code }}</span> {{ $label }}</li>
+            <li><span class="cell-code tone-{{ ['H' => 'hadir', 'T' => 'terlambat', 'I' => 'izin', 'S' => 'sakit', 'A' => 'alpa'][$code] ?? 'missing' }}" aria-hidden="true">{{ $code }}</span> {{ $label }}</li>
         @endforeach
         <li><span class="cell-code tone-off" aria-hidden="true"></span> Libur / bukan hari sekolah</li>
     </ul>

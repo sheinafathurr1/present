@@ -27,7 +27,7 @@ return [
 
     // Nilai bawaan pengaturan sekolah (dipakai sebelum diubah di dashboard).
     'defaults' => [
-        'school_name' => env('APP_NAME', 'Presensi SLB'),
+        'school_name' => env('APP_NAME', 'Presensi Sekolah'),
         'late_after' => '07:15',
         'check_out_start' => '12:00',
         'tap_cooldown_seconds' => 60,
