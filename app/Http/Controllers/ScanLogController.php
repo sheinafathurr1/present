@@ -19,7 +19,7 @@ class ScanLogController extends Controller
             'perangkat' => ['nullable', 'integer'],
         ]);
 
-        $scans = RfidScan::with(['student.schoolClass', 'device'])
+        $scans = RfidScan::with(['student.schoolClass', 'device', 'user'])
             ->when($filters['tanggal'] ?? null, fn ($query, $date) => $query
                 ->whereBetween('scanned_at', [$date.' 00:00:00', $date.' 23:59:59']))
             ->when($filters['hasil'] ?? null, fn ($query, $result) => $query->where('result', $result))

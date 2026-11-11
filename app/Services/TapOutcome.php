@@ -10,7 +10,7 @@ use Illuminate\Support\Str;
 
 /**
  * Hasil pemrosesan satu kali tap kartu, lengkap dengan teks yang ditampilkan
- * dan diucapkan di layar kiosk maupun dikirim ke pembaca jaringan.
+ * dan diucapkan di PC guru maupun dikirim ke pembaca jaringan.
  */
 final readonly class TapOutcome
 {
@@ -129,12 +129,21 @@ final readonly class TapOutcome
             'display' => $this->displayLines(),
             'time' => $this->at->format('H.i'),
             'student' => $student ? [
+                'id' => $student->id,
                 'name' => $student->name,
                 'call_name' => $student->callName(),
                 'initials' => $student->initials(),
                 'class' => $student->schoolClass?->name,
                 'photo_url' => $student->photoUrl(),
                 'feedback_mode' => $student->feedback_mode->value,
+            ] : null,
+            'attendance' => $this->attendance?->exists ? [
+                'status' => $this->attendance->status->value,
+                'status_label' => $this->attendance->status->label(),
+                'status_code' => $this->attendance->status->code(),
+                'status_tone' => $this->attendance->status->tone(),
+                'check_in' => $this->attendance->check_in_at?->format('H.i'),
+                'check_out' => $this->attendance->check_out_at?->format('H.i'),
             ] : null,
         ];
     }

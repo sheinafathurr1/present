@@ -45,10 +45,10 @@ class User extends Authenticatable
         return $this->role === UserRole::Admin;
     }
 
-    /** Halaman pertama setelah login, sesuai peran. */
+    /** Halaman pertama setelah login. */
     public function homeRoute(): string
     {
-        return $this->role === UserRole::Kiosk ? route('kiosk.index') : route('dashboard');
+        return route('dashboard');
     }
 
     /** @return HasMany<SchoolClass, $this> */

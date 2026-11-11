@@ -6,7 +6,7 @@
 <div class="page-head">
     <div>
         <h1>Pengguna</h1>
-        <p class="lead">Akun untuk admin, guru, dan komputer kiosk.</p>
+        <p class="lead">Akun untuk admin dan guru. Setiap guru login di PC-nya sendiri yang tersambung ke pembaca kartu.</p>
     </div>
     <div class="actions"><a href="{{ route('users.create') }}" class="btn btn--primary"><x-icon name="plus" /> Tambah pengguna</a></div>
 </div>

@@ -32,7 +32,7 @@ enum DisabilityType: string
         };
     }
 
-    /** Mode umpan balik kiosk yang disarankan untuk kategori ini. */
+    /** Mode umpan balik saat tap kartu yang disarankan untuk kategori ini. */
     public function suggestedFeedback(): FeedbackMode
     {
         return match ($this) {

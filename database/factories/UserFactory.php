@@ -40,11 +40,6 @@ class UserFactory extends Factory
         return $this->state(fn () => ['role' => UserRole::Admin]);
     }
 
-    public function kiosk(): static
-    {
-        return $this->state(fn () => ['role' => UserRole::Kiosk]);
-    }
-
     /**
      * Indicate that the model's email address should be unverified.
      */

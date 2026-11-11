@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Enums\AttendanceStatus;
 use App\Models\Attendance;
-use App\Models\Device;
 use App\Models\RfidScan;
 use App\Models\Student;
 use App\Support\DailySummary;
@@ -13,8 +12,14 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
+/**
+ * Halaman utama guru. Biasanya dibiarkan terbuka di PC guru yang tersambung
+ * ke pembaca kartu USB, sehingga angka & daftar diperbarui otomatis.
+ */
 class DashboardController extends Controller
 {
+    private const MISSING_LIMIT = 12;
+
     public function index(SchoolSettings $settings): View
     {
         $today = today();
@@ -25,13 +30,13 @@ class DashboardController extends Controller
             'isSchoolDay' => $settings->isSchoolDay($today),
             'summary' => $summary,
             'recentScans' => $this->recentScans(),
+            'missing' => $this->missingStudents(),
             'trend' => $this->trend($settings),
-            'devices' => Device::orderBy('name')->get(),
             'unregisteredCount' => Student::active()->whereNull('rfid_uid')->count(),
         ]);
     }
 
-    /** Data untuk pembaruan otomatis dashboard (polling tiap beberapa detik). */
+    /** Data untuk pembaruan otomatis dashboard. */
     public function live(): JsonResponse
     {
         $summary = new DailySummary(today()->toDateString());
@@ -46,7 +51,13 @@ class DashboardController extends Controller
                 'class' => $scan->student?->schoolClass?->name,
                 'result' => $scan->result->label(),
                 'tone' => $scan->result->tone(),
-                'device' => $scan->device?->name,
+                'source' => $scan->sourceName(),
+            ])->values(),
+            'missing' => $this->missingStudents()->map(fn (Student $student) => [
+                'id' => $student->id,
+                'name' => $student->name,
+                'class' => $student->schoolClass?->name,
+                'url' => route('students.show', $student),
             ])->values(),
         ]);
     }
@@ -54,10 +65,26 @@ class DashboardController extends Controller
     /** @return Collection<int, RfidScan> */
     private function recentScans(): Collection
     {
-        return RfidScan::with(['student.schoolClass', 'device'])
+        return RfidScan::with(['student.schoolClass', 'device', 'user'])
             ->latest('scanned_at')
             ->latest('id')
             ->limit(8)
+            ->get();
+    }
+
+    /**
+     * Siswa aktif yang hari ini belum punya catatan presensi sama sekali.
+     *
+     * @return Collection<int, Student>
+     */
+    private function missingStudents(): Collection
+    {
+        return Student::active()
+            ->with('schoolClass')
+            ->whereDoesntHave('attendances', fn ($query) => $query->where('date', today()->toDateString()))
+            ->orderBy('school_class_id')
+            ->orderBy('name')
+            ->limit(self::MISSING_LIMIT)
             ->get();
     }
 

@@ -126,7 +126,7 @@ class StudentController extends Controller
             'disabilityTypes' => DisabilityType::cases(),
             'feedbackModes' => FeedbackMode::cases(),
             // Kartu yang baru saja ditempel di pembaca tetapi belum terdaftar.
-            'unknownScans' => RfidScan::with('device')
+            'unknownScans' => RfidScan::with(['device', 'user'])
                 ->where('result', ScanResult::UnknownCard)
                 ->where('scanned_at', '>=', now()->subDay())
                 ->whereNotIn('uid', Student::whereNotNull('rfid_uid')->select('rfid_uid'))

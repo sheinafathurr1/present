@@ -5,13 +5,13 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\HolidayController;
-use App\Http\Controllers\KioskController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ScanLogController;
 use App\Http\Controllers\SchoolClassController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\StudentImportController;
+use App\Http\Controllers\TapController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -27,16 +27,12 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::post('logout', [LoginController::class, 'destroy'])->name('logout');
 
-    // Layar presensi (kiosk) untuk pembaca kartu USB.
-    Route::middleware('role:admin,guru,kiosk')->prefix('kiosk')->name('kiosk.')->group(function () {
-        Route::get('/', [KioskController::class, 'index'])->name('index');
-        Route::get('{device}', [KioskController::class, 'show'])->name('show');
-        Route::post('{device}/tap', [KioskController::class, 'tap'])->middleware('throttle:kiosk')->name('tap');
-        Route::get('{device}/stats', [KioskController::class, 'stats'])->name('stats');
-    });
-
     // Guru & admin.
     Route::middleware('role:admin,guru')->group(function () {
+        // Tap kartu dari pembaca USB yang dicolok ke PC guru.
+        Route::post('tap', [TapController::class, 'store'])->middleware('throttle:tap')->name('tap.store');
+        Route::get('heartbeat', [TapController::class, 'heartbeat'])->name('heartbeat');
+
         Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('dashboard/live', [DashboardController::class, 'live'])->name('dashboard.live');
 

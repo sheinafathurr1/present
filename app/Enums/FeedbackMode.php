@@ -3,7 +3,8 @@
 namespace App\Enums;
 
 /**
- * Cara layar kiosk memberi tahu siswa bahwa presensinya berhasil.
+ * Cara aplikasi memberi tahu siswa bahwa presensinya berhasil, saat kartu
+ * ditempel di pembaca pada PC guru.
  */
 enum FeedbackMode: string
 {

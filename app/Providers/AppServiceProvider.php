@@ -35,10 +35,10 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('device', fn (Request $request) => Limit::perMinute(config('presensi.device_rate_limit', 120))
             ->by('device:'.($request->attributes->get('device')?->id ?? $request->ip())));
 
-        RateLimiter::for('kiosk', fn (Request $request) => Limit::perMinute(120)
-            ->by('kiosk:'.$request->user()?->id.'|'.$request->ip()));
+        RateLimiter::for('tap', fn (Request $request) => Limit::perMinute(120)
+            ->by('tap:'.$request->user()?->id.'|'.$request->ip()));
 
-        View::composer(['layouts.*', 'kiosk.*', 'auth.*'], function ($view) {
+        View::composer(['layouts.*', 'auth.*'], function ($view) {
             $view->with('schoolSettings', $this->app->make(SchoolSettings::class));
         });
     }

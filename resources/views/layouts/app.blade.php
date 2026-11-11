@@ -23,7 +23,7 @@
             ['route' => 'holidays.index', 'match' => 'holidays.*', 'icon' => 'calendar-off', 'label' => 'Hari Libur', 'admin' => true],
         ],
         'Sistem' => [
-            ['route' => 'devices.index', 'match' => 'devices.*', 'icon' => 'reader', 'label' => 'Perangkat Pembaca', 'admin' => true],
+            ['route' => 'devices.index', 'match' => 'devices.*', 'icon' => 'wifi', 'label' => 'Pembaca Wi-Fi', 'admin' => true],
             ['route' => 'users.index', 'match' => 'users.*', 'icon' => 'user-cog', 'label' => 'Pengguna', 'admin' => true],
             ['route' => 'settings.edit', 'match' => 'settings.*', 'icon' => 'sliders', 'label' => 'Pengaturan', 'admin' => true],
         ],
@@ -58,10 +58,6 @@
                 @endif
             @endforeach
         </nav>
-
-        <a href="{{ route('kiosk.index') }}" class="btn btn--primary btn--block sidebar__kiosk">
-            <x-icon name="monitor" /> Buka Layar Presensi
-        </a>
     </aside>
 
     <div class="main-col">
@@ -69,6 +65,17 @@
             <button type="button" class="btn btn--ghost btn--icon topbar__menu" data-sidebar-toggle aria-controls="sidebar" aria-expanded="false">
                 <x-icon name="menu" /><span class="sr-only">Buka menu</span>
             </button>
+
+            <div class="reader-tools" role="group" aria-label="Pembaca kartu">
+                <span class="reader-status" data-reader-status>
+                    <span class="dot dot--success" aria-hidden="true"></span>
+                    <span data-reader-label>Pembaca kartu siap</span>
+                </span>
+                <button type="button" class="btn btn--ghost btn--sm" data-sound-toggle aria-pressed="true">
+                    <span data-when="on"><x-icon name="volume" :size="18" /> Suara</span>
+                    <span data-when="off"><x-icon name="volume-off" :size="18" /> Suara mati</span>
+                </button>
+            </div>
 
             <div class="a11y-tools" role="group" aria-label="Pengaturan tampilan">
                 <span class="a11y-tools__label" aria-hidden="true"><x-icon name="text-size" :size="18" /></span>
@@ -100,6 +107,40 @@
 </div>
 <div class="sidebar-backdrop" data-sidebar-backdrop hidden></div>
 
+{{-- Hasil tap kartu: muncul di atas halaman apa pun yang sedang dibuka guru. --}}
+<div class="tap-overlay" data-tap-overlay hidden>
+    <section class="tap-card" data-tap-card aria-labelledby="tap-headline" aria-describedby="tap-message">
+        <div class="tap-card__visual">
+            <div class="tap-card__icon">
+                <span data-icon="success"><x-icon name="check" :size="96" /></span>
+                <span data-icon="warning"><x-icon name="clock" :size="96" /></span>
+                <span data-icon="checkout"><x-icon name="door" :size="96" /></span>
+                <span data-icon="info"><x-icon name="info" :size="96" /></span>
+                <span data-icon="error"><x-icon name="x" :size="96" /></span>
+            </div>
+            <div class="tap-card__photo" data-tap-photo></div>
+        </div>
+        <div class="tap-card__text">
+            <p class="tap-card__headline" id="tap-headline" data-tap-headline></p>
+            <p class="tap-card__name" data-tap-name></p>
+            <p class="tap-card__class" data-tap-class></p>
+            <p class="tap-card__message" id="tap-message" data-tap-message></p>
+        </div>
+        <button type="button" class="tap-card__close" data-tap-close>
+            <x-icon name="x" :size="20" /> Tutup <kbd>Esc</kbd>
+        </button>
+    </section>
+</div>
+<div class="sr-only" aria-live="assertive" aria-atomic="true" data-tap-announcer></div>
+
+<script>
+    window.Presensi = {
+        tapUrl: @json(route('tap.store')),
+        heartbeatUrl: @json(route('heartbeat')),
+        loginUrl: @json(route('login')),
+    };
+</script>
+<script src="{{ asset('js/card-reader.js') }}?v={{ filemtime(public_path('js/card-reader.js')) }}" defer></script>
 <script src="{{ asset('js/app.js') }}?v={{ filemtime(public_path('js/app.js')) }}" defer></script>
 @stack('scripts')
 </body>

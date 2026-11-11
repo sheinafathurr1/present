@@ -54,7 +54,7 @@ class Student extends Model
         return Attribute::make(set: fn (?string $value) => self::normalizeUid($value));
     }
 
-    /** Nama untuk sapaan di kiosk: nama panggilan, atau kata pertama nama lengkap. */
+    /** Nama untuk sapaan saat tap kartu: nama panggilan, atau kata pertama nama lengkap. */
     public function callName(): string
     {
         return $this->nickname ?: Str::before($this->name, ' ');

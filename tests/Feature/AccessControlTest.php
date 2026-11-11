@@ -14,8 +14,8 @@ class AccessControlTest extends TestCase
     public function test_guest_is_redirected_to_login(): void
     {
         $this->get('/dashboard')->assertRedirect('/login');
-        $this->get('/kiosk')->assertRedirect('/login');
         $this->get('/')->assertRedirect('/login');
+        $this->postJson('/tap', ['uid' => 'A1B2C3D4'])->assertUnauthorized();
     }
 
     public function test_user_can_log_in_and_out(): void
@@ -45,17 +45,6 @@ class AccessControlTest extends TestCase
         $this->post('/login', ['email' => 'guru@sekolah.test', 'password' => 'salah'])->assertTooManyRequests();
     }
 
-    public function test_kiosk_account_lands_on_kiosk_and_cannot_open_dashboard(): void
-    {
-        User::factory()->kiosk()->create(['email' => 'kiosk@sekolah.test', 'password' => 'rahasia123']);
-
-        $this->post('/login', ['email' => 'kiosk@sekolah.test', 'password' => 'rahasia123'])->assertRedirect('/kiosk');
-
-        $this->get('/dashboard')->assertRedirect('/kiosk');
-        $this->get('/siswa')->assertRedirect('/kiosk');
-        $this->getJson('/dashboard/live')->assertForbidden();
-    }
-
     public function test_teacher_can_view_but_not_manage_master_data(): void
     {
         $guru = User::factory()->create();
@@ -82,8 +71,8 @@ class AccessControlTest extends TestCase
         $this->actingAs($admin);
 
         foreach (['/dashboard', '/presensi', '/rekap', '/log-scan', '/siswa', '/siswa/tambah', '/siswa/impor',
-            '/kelas', '/kelas/tambah', '/perangkat', '/perangkat/tambah', '/hari-libur', '/pengguna',
-            '/pengguna/tambah', '/pengaturan', '/kiosk', "/kiosk/{$device->id}"] as $url) {
+            '/kelas', '/kelas/tambah', '/perangkat', '/perangkat/tambah', "/perangkat/{$device->id}/ubah",
+            '/hari-libur', '/pengguna', '/pengguna/tambah', '/pengaturan'] as $url) {
             $this->get($url)->assertOk();
         }
     }

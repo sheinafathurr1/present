@@ -88,7 +88,7 @@
                 <tbody>
                 @foreach ($students as $student)
                     @php $record = $student->today; @endphp
-                    <tr id="siswa-{{ $student->id }}">
+                    <tr id="siswa-{{ $student->id }}" data-attendance-row="{{ $student->id }}" data-date="{{ $dateString }}" data-today="{{ today()->toDateString() }}">
                         <th scope="row" data-label="Siswa">
                             <span class="person">
                                 <x-avatar :student="$student" :size="36" />
@@ -98,15 +98,15 @@
                                 </span>
                             </span>
                         </th>
-                        <td data-label="Status">
+                        <td data-label="Status" data-cell="status">
                             <x-status-badge :status="$record?->status" />
                             @if ($record?->note)<span class="note">“{{ $record->note }}”</span>@endif
                             @if ($record && $record->source !== 'rfid')
                                 <span class="muted small">{{ $record->sourceLabel() }}{{ $record->recorder ? ' · '.$record->recorder->name : '' }}</span>
                             @endif
                         </td>
-                        <td data-label="Masuk">{{ $record?->check_in_at?->format('H.i') ?? '—' }}</td>
-                        <td data-label="Pulang">{{ $record?->check_out_at?->format('H.i') ?? '—' }}</td>
+                        <td data-label="Masuk" data-cell="in">{{ $record?->check_in_at?->format('H.i') ?? '—' }}</td>
+                        <td data-label="Pulang" data-cell="out">{{ $record?->check_out_at?->format('H.i') ?? '—' }}</td>
                         <td data-label="Ubah status">
                             <form method="POST" action="{{ route('attendances.store') }}" class="inline-form">
                                 @csrf

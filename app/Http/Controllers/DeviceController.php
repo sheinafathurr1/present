@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Device;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class DeviceController extends Controller
@@ -30,7 +29,7 @@ class DeviceController extends Controller
 
         return redirect()->route('devices.index')
             ->with('success', "Perangkat {$device->name} ditambahkan.")
-            ->with('new_token', ['device' => $device->name, 'token' => $token, 'type' => $device->type]);
+            ->with('new_token', ['device' => $device->name, 'token' => $token]);
     }
 
     public function edit(Device $device): View
@@ -58,7 +57,7 @@ class DeviceController extends Controller
 
         return redirect()->route('devices.index')
             ->with('success', "Token baru untuk {$device->name} dibuat. Token lama sudah tidak berlaku.")
-            ->with('new_token', ['device' => $device->name, 'token' => $token, 'type' => $device->type]);
+            ->with('new_token', ['device' => $device->name, 'token' => $token]);
     }
 
     /** @return array<string, mixed> */
@@ -67,7 +66,6 @@ class DeviceController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100'],
             'location' => ['nullable', 'string', 'max:150'],
-            'type' => ['required', Rule::in([Device::TYPE_USB, Device::TYPE_NETWORK])],
             'is_active' => ['nullable', 'boolean'],
         ]);
 

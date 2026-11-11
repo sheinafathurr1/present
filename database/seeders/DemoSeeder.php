@@ -6,7 +6,6 @@ use App\Enums\AttendanceStatus;
 use App\Enums\DisabilityType;
 use App\Enums\UserRole;
 use App\Models\Attendance;
-use App\Models\Device;
 use App\Models\Holiday;
 use App\Models\SchoolClass;
 use App\Models\Student;
@@ -27,9 +26,6 @@ class DemoSeeder extends Seeder
 
         $guru = User::firstOrCreate(['email' => 'guru@sekolah.test'], [
             'name' => 'Ibu Sari Rahayu', 'password' => 'password', 'role' => UserRole::Guru,
-        ]);
-        User::firstOrCreate(['email' => 'kiosk@sekolah.test'], [
-            'name' => 'Kiosk Gerbang', 'password' => 'password', 'role' => UserRole::Kiosk,
         ]);
 
         $classes = collect([
@@ -57,11 +53,9 @@ class DemoSeeder extends Seeder
 
         Student::factory()->withoutCard()->create(['school_class_id' => $classes->first()->id, 'disability_type' => DisabilityType::Autis]);
 
-        Device::firstOrCreate(['name' => 'Pintu Asrama'], ['type' => Device::TYPE_NETWORK, 'location' => 'Gedung asrama']);
         Holiday::firstOrCreate(['date' => now()->startOfMonth()->addDays(16)->toDateString()], ['name' => 'Contoh hari libur']);
 
         // Riwayat presensi 3 minggu terakhir (tanpa hari ini).
-        $device = Device::where('type', Device::TYPE_USB)->first();
         $students = Student::active()->whereNotNull('rfid_uid')->get();
 
         for ($date = today()->subDays(21); $date->lt(today()); $date->addDay()) {
@@ -89,8 +83,6 @@ class DemoSeeder extends Seeder
                     'status' => $status,
                     'check_in_at' => $present ? $checkIn : null,
                     'check_out_at' => $present ? $date->copy()->setTime(12, random_int(0, 40)) : null,
-                    'check_in_device_id' => $present ? $device?->id : null,
-                    'check_out_device_id' => $present ? $device?->id : null,
                     'source' => $present ? Attendance::SOURCE_RFID : ($status === AttendanceStatus::Alpa ? Attendance::SOURCE_SYSTEM : Attendance::SOURCE_MANUAL),
                     'note' => match ($status) {
                         AttendanceStatus::Sakit => 'Demam, surat dari orang tua',
@@ -102,6 +94,6 @@ class DemoSeeder extends Seeder
             }
         }
 
-        $this->command?->info('Data contoh dibuat. Akun guru & kiosk: guru@sekolah.test / kiosk@sekolah.test (sandi: password).');
+        $this->command?->info('Data contoh dibuat. Akun guru: guru@sekolah.test (sandi: password).');
     }
 }

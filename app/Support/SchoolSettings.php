@@ -77,11 +77,6 @@ class SchoolSettings
         return array_values(array_map('intval', (array) $this->get('school_days', [1, 2, 3, 4, 5, 6])));
     }
 
-    public function kioskMessage(): string
-    {
-        return (string) $this->get('kiosk_message', 'Tempelkan kartu kamu di alat pembaca');
-    }
-
     /** Hari sekolah = termasuk hari aktif dan bukan hari libur. */
     public function isSchoolDay(CarbonInterface $date): bool
     {

@@ -10,19 +10,18 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
-#[Fillable(['name', 'location', 'type', 'is_active'])]
+/**
+ * Pembaca kartu jaringan (ESP32/ESP8266) yang mengirim tap lewat API.
+ * Pembaca USB yang dicolok ke PC guru tidak memerlukan data perangkat.
+ */
+#[Fillable(['name', 'location', 'is_active'])]
 #[Hidden(['api_token_hash'])]
 class Device extends Model
 {
     /** @use HasFactory<DeviceFactory> */
     use HasFactory;
 
-    public const TYPE_USB = 'usb';
-
-    public const TYPE_NETWORK = 'network';
-
     protected $attributes = [
-        'type' => self::TYPE_USB,
         'is_active' => true,
     ];
 
@@ -32,13 +31,6 @@ class Device extends Model
             'is_active' => 'boolean',
             'last_seen_at' => 'datetime',
         ];
-    }
-
-    public function typeLabel(): string
-    {
-        return $this->type === self::TYPE_NETWORK
-            ? 'Pembaca jaringan (ESP32/ESP8266)'
-            : 'Pembaca USB + layar kiosk';
     }
 
     /**

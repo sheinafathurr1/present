@@ -620,7 +620,7 @@ input[type="file"].input { padding: .45rem; }
 .pagination__info { margin: 0; color: var(--muted); }
 .pagination__gap { display: inline-block; padding: .35rem .5rem; }
 
-/* ---------- Halaman tamu (login, pilih kiosk, error) ---------- */
+/* ---------- Halaman tamu (login, error) ---------- */
 
 .guest { min-height: 100vh; display: grid; place-items: center; padding: 1.5rem 1rem; }
 .guest__main { width: 100%; max-width: 560px; }
@@ -630,28 +630,186 @@ input[type="file"].input { padding: .45rem; }
 .login__card { padding: 1.75rem; }
 .login__hint { text-align: center; margin-top: 1rem; }
 
-.kiosk-picker__list { list-style: none; margin: 0; padding: 0; }
-.kiosk-picker__item {
-    display: flex; align-items: center; gap: 1rem;
-    color: var(--text);
-    text-decoration: none;
-    font-size: 1.15rem;
-    margin-bottom: .75rem;
-}
-.kiosk-picker__item:hover { border-color: var(--primary); color: var(--text); }
-.kiosk-picker__item > span:nth-child(2) { flex: 1; display: flex; flex-direction: column; }
-.kiosk-picker__item .muted { font-size: .95rem; }
-.kiosk-picker__foot { display: flex; justify-content: center; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; }
-
 .error-page { text-align: center; padding: 2.5rem 1.5rem; }
 .error-page__code { font-size: 3.5rem; font-weight: 700; color: var(--primary); margin: 0; line-height: 1; }
 
 .sidebar-backdrop { position: fixed; inset: 0; z-index: 39; background: rgb(0 0 0 / 45%); }
 
+/* ---------- Pembaca kartu di PC guru ---------- */
+
+.reader-tools { display: flex; align-items: center; gap: .35rem; }
+.reader-status {
+    display: inline-flex; align-items: center; gap: .45rem;
+    padding: .3rem .75rem;
+    border-radius: 99px;
+    border: 2px solid var(--success);
+    background: var(--success-soft);
+    color: var(--success);
+    font-size: .9rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.reader-status[data-state="paused"] { border-color: var(--border-strong); background: var(--surface-2); color: var(--muted); }
+.reader-status[data-state="paused"] .dot { background: var(--muted); }
+.reader-status[data-state="register"] { border-color: var(--info); background: var(--info-soft); color: var(--info); }
+.reader-status[data-state="register"] .dot { background: var(--info); }
+.reader-status[data-state="error"] { border-color: var(--danger); background: var(--danger-soft); color: var(--danger); }
+.reader-status[data-state="error"] .dot { background: var(--danger); }
+.reader-status[data-state="ready"] .dot { animation: reader-blink 2s ease-in-out infinite; }
+[data-sound-toggle][aria-pressed="true"] [data-when="off"],
+[data-sound-toggle][aria-pressed="false"] [data-when="on"] { display: none; }
+[data-sound-toggle] [data-when] { display: inline-flex; align-items: center; gap: .35rem; }
+.btn[data-sound-toggle][aria-pressed="true"] { background: transparent; color: var(--primary); }
+
+@keyframes reader-blink { 50% { opacity: .35; } }
+
+.reader-panel {
+    display: flex; align-items: center; gap: 1rem;
+    margin-bottom: 1.25rem;
+    padding: 1rem 1.25rem;
+    border: 2px dashed var(--primary);
+    border-radius: var(--radius);
+    background: var(--primary-soft);
+}
+.reader-panel h2 { margin: 0 0 .15rem; color: var(--primary); }
+.reader-panel p { margin: 0; color: var(--text); }
+.reader-panel__icon {
+    display: inline-grid; place-items: center;
+    width: 56px; height: 56px; flex-shrink: 0;
+    border-radius: 14px;
+    background: var(--primary);
+    color: var(--on-primary);
+}
+
+.missing-list { list-style: none; margin: 0; padding: 0; columns: 2; column-gap: 1.5rem; }
+.missing-list li { break-inside: avoid; padding: .4rem 0; border-bottom: 1px solid var(--border); }
+.missing-list .muted { display: block; font-size: .85rem; }
+
+.callout--top { margin: 0 0 1.25rem; }
+.rfid-capture.is-filled .input { border-color: var(--success); box-shadow: 0 0 0 4px var(--success-soft); }
+
+.table tbody tr.is-updated { animation: row-flash 2.5s ease; }
+@keyframes row-flash { from { background: var(--success-soft); } to { background: transparent; } }
+
+kbd {
+    padding: .05rem .35rem;
+    border: 1px solid currentColor;
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: .8em;
+}
+
+/*
+ * Jendela hasil tap kartu. Dibuat besar agar terbaca siswa yang berdiri di
+ * depan meja guru. Warna latar + ikon + kata (tidak bergantung warna saja);
+ * kombinasi warna dengan teks putih ≥ 4.5:1.
+ */
+.tap-overlay {
+    --tap-success: #0b7a3c;
+    --tap-warning: #8f5400;
+    --tap-checkout: #4f35a1;
+    --tap-info: #24486f;
+    --tap-error: #b3261e;
+    --tap-bg: var(--tap-info);
+
+    position: fixed; inset: 0; z-index: 60;
+    display: grid; place-items: center;
+    padding: 1.5rem;
+    background: rgb(10 16 26 / 55%);
+}
+.tap-overlay[hidden] { display: none; }
+.tap-overlay[data-tone="success"] { --tap-bg: var(--tap-success); }
+.tap-overlay[data-tone="warning"] { --tap-bg: var(--tap-warning); }
+.tap-overlay[data-tone="checkout"] { --tap-bg: var(--tap-checkout); }
+.tap-overlay[data-tone="info"] { --tap-bg: var(--tap-info); }
+.tap-overlay[data-tone="error"] { --tap-bg: var(--tap-error); }
+
+.tap-card {
+    position: relative;
+    display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center;
+    gap: clamp(1.25rem, 3vw, 2.5rem);
+    width: min(980px, 100%);
+    padding: clamp(1.5rem, 4vw, 3rem);
+    border-radius: 24px;
+    background: var(--tap-bg);
+    color: #ffffff;
+    box-shadow: 0 24px 64px rgb(0 0 0 / 35%);
+    animation: tap-pop .3s ease-out;
+}
+.tap-card__visual { display: flex; flex-direction: column; align-items: center; gap: 1.25rem; }
+.tap-card__icon {
+    display: grid; place-items: center;
+    width: clamp(110px, 14vw, 170px); height: clamp(110px, 14vw, 170px);
+    border-radius: 50%;
+    background: #ffffff;
+    color: var(--tap-bg);
+}
+.tap-card__icon > span { display: none; }
+.tap-card__icon .icon { width: 62%; height: 62%; stroke-width: 2.6; }
+.tap-overlay[data-tone="success"] [data-icon="success"],
+.tap-overlay[data-tone="warning"] [data-icon="warning"],
+.tap-overlay[data-tone="checkout"] [data-icon="checkout"],
+.tap-overlay[data-tone="info"] [data-icon="info"],
+.tap-overlay[data-tone="error"] [data-icon="error"] { display: contents; }
+
+.tap-card__photo img, .tap-card__initials {
+    width: clamp(96px, 12vw, 150px); height: clamp(96px, 12vw, 150px);
+    border-radius: 20px;
+    border: 5px solid #ffffff;
+    object-fit: cover;
+    background: rgb(255 255 255 / 16%);
+}
+.tap-card__initials { display: grid; place-items: center; font-size: clamp(2.4rem, 5vw, 4rem); font-weight: 700; }
+.tap-card__photo:empty { display: none; }
+
+.tap-card__text p { margin: 0; }
+.tap-card__headline {
+    display: inline-block;
+    margin-bottom: .75rem !important;
+    padding: .1em .5em;
+    border-radius: 12px;
+    background: #ffffff;
+    color: var(--tap-bg);
+    font-size: clamp(1.6rem, 3.6vw, 3rem);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+}
+.tap-card__name { font-size: clamp(2rem, 5vw, 4.25rem); font-weight: 700; line-height: 1.08; overflow-wrap: anywhere; }
+.tap-card__class { margin-top: .35rem !important; font-size: clamp(1.1rem, 2vw, 1.6rem); opacity: .95; }
+.tap-card__class:empty { display: none; }
+.tap-card__message { margin-top: 1rem !important; font-size: clamp(1.15rem, 2.2vw, 1.75rem); line-height: 1.35; }
+
+.tap-card__close {
+    position: absolute; top: .75rem; right: .75rem;
+    display: inline-flex; align-items: center; gap: .35rem;
+    min-height: 40px;
+    padding: .35rem .75rem;
+    border: 2px solid rgb(255 255 255 / 60%);
+    border-radius: 10px;
+    background: transparent;
+    color: #ffffff;
+    font: inherit;
+    font-size: .9rem;
+    cursor: pointer;
+}
+.tap-card__close:hover { border-color: #ffffff; background: rgb(255 255 255 / 12%); }
+
+/* Mode "utamakan tampilan" (mis. siswa tunarungu): bingkai tebal & cincin berdenyut pelan (1×/detik). */
+.tap-overlay.is-visual-emphasis .tap-card { box-shadow: inset 0 0 0 10px rgb(255 255 255 / 85%), 0 24px 64px rgb(0 0 0 / 35%); }
+.tap-overlay.is-visual-emphasis .tap-card__icon { animation: tap-pulse 1s ease-out 6; }
+
+@keyframes tap-pop { from { transform: scale(.94); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes tap-pulse {
+    0% { box-shadow: 0 0 0 0 rgb(255 255 255 / 60%); }
+    100% { box-shadow: 0 0 0 36px rgb(255 255 255 / 0%); }
+}
+
 /* ---------- Layar kecil ---------- */
 
 @media (max-width: 1100px) {
     .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .a11y-tools .btn span:not(.sr-only), .a11y-tools__label { display: none; }
 }
 
 @media (max-width: 900px) {
@@ -688,7 +846,10 @@ input[type="file"].input { padding: .45rem; }
 
 @media (max-width: 560px) {
     .stat-grid { grid-template-columns: minmax(0, 1fr); }
-    .a11y-tools .btn span:not(.sr-only) { display: none; }
+    .missing-list { columns: 1; }
+    [data-sound-toggle] [data-when] { font-size: 0; gap: 0; }
+    .tap-card { grid-template-columns: minmax(0, 1fr); justify-items: center; text-align: center; padding-top: 3.5rem; }
+    .tap-card__visual { flex-direction: row; }
     .details > div, .details--compact > div { grid-template-columns: minmax(0, 1fr); gap: .1rem; }
     .photo-field { flex-direction: column; }
     .page-head { align-items: flex-start; }
@@ -703,7 +864,7 @@ input[type="file"].input { padding: .45rem; }
 @media print {
     @page { size: A4 landscape; margin: 10mm; }
     body { background: #fff; font-size: 10pt; }
-    .sidebar, .topbar, .skip-link, .no-print, .alert, .pagination { display: none !important; }
+    .sidebar, .topbar, .skip-link, .no-print, .alert, .pagination, .tap-overlay { display: none !important; }
     .print-only { display: block; }
     .content { padding: 0; max-width: none; }
     .card { border: 0; box-shadow: none; padding: 0; }

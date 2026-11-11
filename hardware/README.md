@@ -1,47 +1,47 @@
 # Perangkat keras pembaca kartu
 
-Aplikasi mendukung **dua jenis pembaca**. Boleh dipakai bersamaan, misalnya
-pembaca USB di gerbang utama dan pembaca ESP32 di pintu asrama.
+Cara utama: **pembaca RFID USB dicolok ke PC guru**. Pembaca kartu Wi-Fi
+(ESP32) hanya opsional, misalnya untuk pintu asrama yang tidak ada PC-nya.
 
 > **Penting:** daftarkan kartu siswa memakai jenis pembaca yang sama dengan yang
 > dipakai untuk presensi. Pembaca USB sering mengirim nomor kartu dalam format
 > desimal (mis. `0004283792`), sedangkan ESP32 + RC522 mengirim format
 > heksadesimal (mis. `A1B2C3D4`). Kartu yang sama bisa terbaca berbeda.
 
-## A. Pembaca USB + layar kiosk (paling mudah)
+## A. Pembaca USB di PC guru (utama)
 
 | Komponen | Keterangan |
 |---|---|
-| Pembaca RFID USB "keyboard emulation" | 125 kHz (EM4100) atau 13,56 MHz (Mifare), harga ±Rp100–250 rb |
-| Kartu RFID | Sesuaikan frekuensinya dengan pembaca |
-| Komputer / mini PC / laptop bekas | Cukup bisa menjalankan Chrome / Edge |
-| Monitor | Disarankan ≥ 21 inci, dipasang setinggi mata siswa (juga untuk pengguna kursi roda) |
-| Speaker | Wajib untuk siswa tunanetra |
+| Pembaca RFID USB "keyboard emulation" | 125 kHz (EM4100) atau 13,56 MHz (Mifare), harga ±Rp100–250 rb, tanpa driver |
+| Kartu / gantungan kunci RFID | Sesuaikan frekuensinya dengan pembaca |
+| PC/laptop guru | Chrome atau Edge versi terbaru |
+| Speaker | Wajib bila ada siswa tunanetra |
 
 Langkah:
 
-1. Colok pembaca ke komputer. Buka Notepad, tempel kartu: bila muncul angka lalu
+1. Colok pembaca ke PC guru. Buka Notepad, tempel kartu: bila muncul angka lalu
    pindah baris, pembaca sudah berfungsi.
-2. Di dashboard tambahkan perangkat jenis **Pembaca USB + layar kiosk**.
-3. Buat akun berperan **Akun Kiosk** di menu Pengguna.
-4. Di komputer kiosk, login dengan akun kiosk (centang *Ingat saya*), pilih perangkat.
-5. Tekan **Mulai presensi** (atau langsung tempel kartu pertama) agar suara aktif.
+2. Buka aplikasi di browser, login sebagai guru (centang *Ingat saya*).
+3. Penanda di bilah atas harus berbunyi **Siap menerima kartu**. Siswa bisa langsung
+   menempelkan kartu; hasilnya tampil besar di layar guru dan diucapkan.
+4. Biarkan **jendela browser tetap di depan** selama jam presensi. Pembaca USB
+   mengetik ke jendela yang aktif — bila guru sedang di Word/Excel, nomor kartu
+   akan terketik di sana.
 
-Tips menjalankan Chrome dalam mode kiosk saat komputer menyala (Windows):
+Tips penempatan untuk siswa berkebutuhan khusus:
 
-```bat
-"C:\Program Files\Google\Chrome\Application\chrome.exe" --kiosk --autoplay-policy=no-user-gesture-required http://SERVER/kiosk/1
-```
-
-`--autoplay-policy=no-user-gesture-required` membuat suara langsung aktif tanpa
-perlu diklik. Letakkan pintasan tersebut di folder *Startup* Windows.
+- Letakkan pembaca di tepi meja yang mudah dijangkau pengguna kursi roda, dan beri
+  penanda timbul/tekstur di permukaannya agar mudah ditemukan siswa tunanetra.
+- Arahkan monitor sedikit ke arah siswa agar jendela hasil (nama, foto, warna)
+  bisa dilihat siswa tunarungu.
+- Kartu bisa dipasang di gantungan leher/gelang bagi siswa yang kesulitan memegang kartu.
 
 Suara ucapan memakai mesin suara bawaan sistem. Agar pelafalan bahasa Indonesia
 bagus, pasang suara **Bahasa Indonesia** (Windows: *Settings → Time & Language →
 Speech → Add voices → Indonesian*). Chrome yang terhubung internet juga
 menyediakan suara "Google Bahasa Indonesia".
 
-## B. Pembaca jaringan ESP32 + RC522
+## B. Pembaca Wi-Fi ESP32 + RC522 (opsional)
 
 Contoh program ada di [`esp32-rc522/esp32-rc522.ino`](esp32-rc522/esp32-rc522.ino).
 
@@ -75,7 +75,7 @@ Contoh program ada di [`esp32-rc522/esp32-rc522.ino`](esp32-rc522/esp32-rc522.in
 
 ### Pemasangan
 
-1. Tambahkan perangkat jenis **Pembaca jaringan** di dashboard, salin tokennya.
+1. Tambahkan pembaca di menu **Pembaca Wi-Fi** pada dashboard, salin tokennya.
 2. Isi `WIFI_SSID`, `WIFI_PASSWORD`, `SERVER_URL`, dan `DEVICE_TOKEN` di program.
 3. Unggah ke ESP32 lewat Arduino IDE.
 4. Server harus bisa diakses dari jaringan Wi-Fi yang sama (jalankan server dengan

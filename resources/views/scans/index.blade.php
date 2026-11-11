@@ -25,9 +25,9 @@
         </select>
     </div>
     <div class="field">
-        <label for="f-perangkat">Perangkat</label>
+        <label for="f-perangkat">Pembaca Wi-Fi</label>
         <select id="f-perangkat" name="perangkat" class="input">
-            <option value="">Semua perangkat</option>
+            <option value="">Semua sumber</option>
             @foreach ($devices as $device)
                 <option value="{{ $device->id }}" @selected(($filters['perangkat'] ?? null) == $device->id)>{{ $device->name }}</option>
             @endforeach
@@ -51,7 +51,7 @@
                     <th scope="col">Kartu</th>
                     <th scope="col">Siswa</th>
                     <th scope="col">Hasil</th>
-                    <th scope="col">Perangkat</th>
+                    <th scope="col">Diterima di</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -70,7 +70,7 @@
                             @endif
                         </td>
                         <td data-label="Hasil"><span class="badge badge--{{ $scan->result->tone() }}">{{ $scan->result->label() }}</span></td>
-                        <td data-label="Perangkat">{{ $scan->device?->name ?? '—' }}</td>
+                        <td data-label="Diterima di">{{ $scan->sourceName() ?? '—' }}</td>
                     </tr>
                 @endforeach
                 </tbody>

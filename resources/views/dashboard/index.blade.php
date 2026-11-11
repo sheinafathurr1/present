@@ -15,6 +15,14 @@
     </div>
 </div>
 
+<section class="reader-panel" data-reader-panel aria-labelledby="reader-title">
+    <span class="reader-panel__icon" aria-hidden="true"><x-icon name="card" :size="32" /></span>
+    <div>
+        <h2 id="reader-title" data-reader-text>Siap menerima kartu</h2>
+        <p data-reader-help>Siswa cukup menempelkan kartu ke pembaca yang tersambung ke PC ini. Hasilnya muncul di layar dan diucapkan.</p>
+    </div>
+</section>
+
 @php $t = $summary->totals; @endphp
 <section aria-labelledby="ringkasan" data-live-url="{{ route('dashboard.live') }}" id="live-dashboard">
     <h2 id="ringkasan" class="sr-only">Ringkasan hari ini</h2>
@@ -54,7 +62,7 @@
                         <span class="feed__time">{{ $scan->scanned_at->format('H.i') }}</span>
                         <span class="feed__who">
                             <strong>{{ $scan->student?->name ?? 'Kartu '.$scan->uid }}</strong>
-                            <span>{{ $scan->student?->schoolClass?->name }}{{ $scan->device ? ' · '.$scan->device->name : '' }}</span>
+                            <span>{{ collect([$scan->student?->schoolClass?->name, $scan->sourceName()])->filter()->implode(' · ') }}</span>
                         </span>
                         <span class="badge badge--{{ $scan->result->tone() }}">{{ $scan->result->label() }}</span>
                     </li>
@@ -120,32 +128,23 @@
         @endif
     </section>
 
-    <section class="card" aria-labelledby="perangkat">
-        <div class="card__head"><h2 id="perangkat">Perangkat pembaca</h2></div>
-        @if ($devices->isEmpty())
-            <p class="empty">Belum ada perangkat.
-                @if (auth()->user()->isAdmin())<a href="{{ route('devices.create') }}">Tambah perangkat pembaca</a>.@endif
-            </p>
-        @else
-            <ul class="device-list">
-                @foreach ($devices as $device)
-                    <li>
-                        <x-icon :name="$device->type === 'network' ? 'wifi' : 'monitor'" />
-                        <span>
-                            <strong>{{ $device->name }}</strong>
-                            <span class="muted">{{ $device->location ?: $device->typeLabel() }}</span>
-                        </span>
-                        @if (! $device->is_active)
-                            <span class="badge badge--muted">Nonaktif</span>
-                        @elseif ($device->isOnline())
-                            <span class="badge badge--success"><span class="dot dot--success" aria-hidden="true"></span>Aktif</span>
-                        @else
-                            <span class="badge badge--muted" title="Terakhir terhubung {{ $device->last_seen_at?->diffForHumans() ?? 'belum pernah' }}">Tidak terhubung</span>
-                        @endif
-                    </li>
-                @endforeach
-            </ul>
-        @endif
+    <section class="card" aria-labelledby="belum-hadir">
+        <div class="card__head">
+            <h2 id="belum-hadir">Belum presensi hari ini</h2>
+            <a href="{{ route('attendances.index', ['status' => 'belum']) }}">Lihat semua →</a>
+        </div>
+        <ul class="missing-list" data-missing @if ($missing->isEmpty()) hidden @endif>
+            @foreach ($missing as $student)
+                <li>
+                    <a href="{{ route('students.show', $student) }}">{{ $student->name }}</a>
+                    <span class="muted">{{ $student->schoolClass?->name }}</span>
+                </li>
+            @endforeach
+        </ul>
+        <p class="empty" data-missing-empty @if ($missing->isNotEmpty()) hidden @endif>Semua siswa sudah tercatat hari ini.</p>
+        <p class="muted small" data-missing-more @if ($summary->totals['unrecorded'] <= $missing->count()) hidden @endif>
+            Total <span data-stat="unrecorded">{{ $summary->totals['unrecorded'] }}</span> siswa belum tercatat.
+        </p>
         @if ($unregisteredCount > 0)
             <div class="callout">
                 <x-icon name="card" />

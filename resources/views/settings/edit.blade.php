@@ -17,7 +17,6 @@
     <section class="card">
         <h2>Identitas</h2>
         <x-input name="school_name" label="Nama sekolah" :value="$settings->schoolName()" required />
-        <x-input name="kiosk_message" label="Pesan di layar kiosk" :value="$settings->kioskMessage()" required hint="Ditampilkan besar di layar saat menunggu kartu ditempel." />
     </section>
 
     <section class="card" aria-labelledby="jam">

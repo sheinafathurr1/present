@@ -141,6 +141,13 @@
             }
         });
 
+        // Kartu ditempel saat kotak tidak sedang difokus (lihat card-reader.js).
+        input.addEventListener('rfid:filled', function (event) {
+            if (status) status.textContent = 'Kartu terbaca: ' + event.detail.uid;
+            wrapper.classList.add('is-filled');
+            setTimeout(function () { wrapper.classList.remove('is-filled'); }, 1500);
+        });
+
         document.querySelectorAll('[data-fill-uid]').forEach(function (chip) {
             chip.addEventListener('click', function () {
                 input.value = chip.dataset.fillUid;
@@ -150,7 +157,7 @@
         });
     });
 
-    /* Usulkan mode umpan balik kiosk sesuai jenis kekhususan. */
+    /* Usulkan mode umpan balik saat tap sesuai jenis kekhususan. */
     var disability = document.querySelector('[data-disability-select]');
     var feedback = document.querySelector('[data-feedback-select]');
     if (disability && feedback) {
@@ -170,35 +177,45 @@
         var url = live.dataset.liveUrl;
         var feed = live.querySelector('[data-feed]');
         var indicator = live.querySelector('[data-live-status]');
+        var missingList = document.querySelector('[data-missing]');
+        var missingEmpty = document.querySelector('[data-missing-empty]');
+        var missingMore = document.querySelector('[data-missing-more]');
         var seen = {};
         feed.querySelectorAll('[data-scan-id]').forEach(function (item) { seen[item.dataset.scanId] = true; });
 
+        var make = function (tag, className, text) {
+            var node = document.createElement(tag);
+            if (className) node.className = className;
+            if (text !== undefined) node.textContent = text;
+            return node;
+        };
+
         var renderScan = function (scan) {
-            var li = document.createElement('li');
-            li.className = 'feed__item';
+            var li = make('li', 'feed__item');
             li.dataset.scanId = scan.id;
-
-            var time = document.createElement('span');
-            time.className = 'feed__time';
-            time.textContent = scan.time;
-
-            var who = document.createElement('span');
-            who.className = 'feed__who';
-            var name = document.createElement('strong');
-            name.textContent = scan.name;
-            var meta = document.createElement('span');
-            meta.textContent = [scan['class'], scan.device].filter(Boolean).join(' · ');
-            who.appendChild(name);
-            who.appendChild(meta);
-
-            var badge = document.createElement('span');
-            badge.className = 'badge badge--' + scan.tone;
-            badge.textContent = scan.result;
-
-            li.appendChild(time);
+            var who = make('span', 'feed__who');
+            who.appendChild(make('strong', '', scan.name));
+            who.appendChild(make('span', '', [scan['class'], scan.source].filter(Boolean).join(' · ')));
+            li.appendChild(make('span', 'feed__time', scan.time));
             li.appendChild(who);
-            li.appendChild(badge);
+            li.appendChild(make('span', 'badge badge--' + scan.tone, scan.result));
             return li;
+        };
+
+        var renderMissing = function (students, total) {
+            if (!missingList) return;
+            missingList.textContent = '';
+            students.forEach(function (student) {
+                var li = make('li');
+                var link = make('a', '', student.name);
+                link.href = student.url;
+                li.appendChild(link);
+                li.appendChild(make('span', 'muted', student['class'] || ''));
+                missingList.appendChild(li);
+            });
+            missingList.hidden = students.length === 0;
+            if (missingEmpty) missingEmpty.hidden = students.length > 0;
+            if (missingMore) missingMore.hidden = total <= students.length;
         };
 
         var refresh = function () {
@@ -209,11 +226,11 @@
                 })
                 .then(function (data) {
                     Object.keys(data.totals).forEach(function (key) {
-                        live.querySelectorAll('[data-stat="' + key + '"]').forEach(function (el) {
-                            el.textContent = data.totals[key];
+                        document.querySelectorAll('[data-stat="' + key + '"]').forEach(function (node) {
+                            node.textContent = data.totals[key];
                         });
                     });
-                    live.querySelectorAll('[data-stat="percentage"]').forEach(function (el) { el.textContent = data.percentage; });
+                    document.querySelectorAll('[data-stat="percentage"]').forEach(function (node) { node.textContent = data.percentage; });
                     var meter = live.querySelector('[data-meter]');
                     if (meter) meter.style.width = data.percentage + '%';
 
@@ -229,6 +246,9 @@
                         });
                         while (feed.children.length > 8) feed.removeChild(feed.lastChild);
                     }
+
+                    renderMissing(data.missing, data.totals.unrecorded);
+
                     if (indicator) {
                         indicator.classList.remove('is-error');
                         indicator.lastChild.textContent = ' Diperbarui otomatis';
@@ -242,8 +262,41 @@
                 });
         };
 
+        // Langsung perbarui setelah kartu ditempel di PC ini, dan berkala untuk tap dari PC lain.
+        document.addEventListener('presensi:tap', refresh);
         setInterval(function () {
             if (!document.hidden) refresh();
-        }, 10000);
+        }, 15000);
     }
+
+    /* ---------- Presensi harian: perbarui baris siswa setelah tap ---------- */
+
+    document.addEventListener('presensi:tap', function (event) {
+        var data = event.detail;
+        if (!data.student || !data.attendance) return;
+        var row = document.querySelector('[data-attendance-row="' + data.student.id + '"]');
+        if (!row || row.dataset.date !== row.dataset.today) return;
+
+        var att = data.attendance;
+        var badge = row.querySelector('[data-cell="status"] .badge');
+        if (badge) {
+            badge.className = 'badge badge--' + att.status_tone;
+            badge.textContent = '';
+            var code = document.createElement('span');
+            code.className = 'badge__code';
+            code.setAttribute('aria-hidden', 'true');
+            code.textContent = att.status_code;
+            badge.appendChild(code);
+            badge.appendChild(document.createTextNode(att.status_label));
+        }
+        var cellIn = row.querySelector('[data-cell="in"]');
+        var cellOut = row.querySelector('[data-cell="out"]');
+        if (cellIn) cellIn.textContent = att.check_in || '—';
+        if (cellOut) cellOut.textContent = att.check_out || '—';
+        var select = row.querySelector('select[name="status"]');
+        if (select) select.value = att.status;
+        row.classList.remove('is-updated');
+        void row.offsetWidth; // mulai ulang animasi sorotan
+        row.classList.add('is-updated');
+    });
 })();

@@ -1,13 +1,14 @@
 @extends('layouts.app')
 
 @php $editing = $device->exists; @endphp
-@section('title', $editing ? 'Ubah Perangkat' : 'Tambah Perangkat')
+@section('title', $editing ? 'Ubah Pembaca Wi-Fi' : 'Tambah Pembaca Wi-Fi')
 
 @section('content')
 <div class="page-head">
     <div>
-        <a href="{{ route('devices.index') }}" class="back-link"><x-icon name="arrow-left" :size="18" /> Perangkat</a>
-        <h1>{{ $editing ? 'Ubah '.$device->name : 'Tambah perangkat pembaca' }}</h1>
+        <a href="{{ route('devices.index') }}" class="back-link"><x-icon name="arrow-left" :size="18" /> Pembaca Wi-Fi</a>
+        <h1>{{ $editing ? 'Ubah '.$device->name : 'Tambah pembaca Wi-Fi' }}</h1>
+        <p class="lead">Alat mandiri ESP32/ESP8266 yang mengirim tap lewat jaringan. Contoh program ada di folder <code>hardware/</code>.</p>
     </div>
 </div>
 
@@ -16,33 +17,14 @@
     @if ($editing) @method('PUT') @endif
     <section class="card">
         <div class="form-grid">
-            <x-input name="name" label="Nama perangkat" :value="$device->name" required placeholder="mis. Gerbang Utama" />
+            <x-input name="name" label="Nama pembaca" :value="$device->name" required placeholder="mis. Pintu Asrama" />
             <x-input name="location" label="Lokasi" :value="$device->location" placeholder="mis. Lobi depan, dekat pos satpam" />
         </div>
-
-        <fieldset class="choice-group">
-            <legend>Jenis pembaca</legend>
-            @php $type = old('type', $device->type ?? 'usb'); @endphp
-            <label class="choice">
-                <input type="radio" name="type" value="usb" @checked($type === 'usb')>
-                <span>
-                    <strong><x-icon name="monitor" /> Pembaca USB + layar kiosk</strong>
-                    <span class="muted">Pembaca RFID dicolok ke komputer/mini PC, lalu layar presensi dibuka di browser. Paling mudah & murah.</span>
-                </span>
-            </label>
-            <label class="choice">
-                <input type="radio" name="type" value="network" @checked($type === 'network')>
-                <span>
-                    <strong><x-icon name="wifi" /> Pembaca jaringan (ESP32/ESP8266)</strong>
-                    <span class="muted">Alat mandiri dengan Wi-Fi yang mengirim data ke server memakai token. Contoh program ada di folder <code>hardware/</code>.</span>
-                </span>
-            </label>
-        </fieldset>
 
         <label class="check check--lg">
             <input type="hidden" name="is_active" value="0">
             <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $device->is_active ?? true))>
-            <span><strong>Perangkat aktif</strong><br><span class="muted">Perangkat nonaktif tidak bisa mencatat presensi.</span></span>
+            <span><strong>Pembaca aktif</strong><br><span class="muted">Pembaca nonaktif tidak bisa mencatat presensi.</span></span>
         </label>
     </section>
     <div class="form-actions">
@@ -52,14 +34,14 @@
 </form>
 
 @if ($editing)
-    <form method="POST" action="{{ route('devices.destroy', $device) }}" class="danger-zone card" data-confirm="Hapus perangkat {{ $device->name }}? Riwayat presensi tetap tersimpan.">
+    <form method="POST" action="{{ route('devices.destroy', $device) }}" class="danger-zone card" data-confirm="Hapus pembaca {{ $device->name }}? Riwayat presensi tetap tersimpan.">
         @csrf
         @method('DELETE')
         <div>
-            <h2>Hapus perangkat</h2>
+            <h2>Hapus pembaca</h2>
             <p class="muted">Riwayat presensi yang sudah tercatat tidak ikut terhapus.</p>
         </div>
-        <button type="submit" class="btn btn--danger"><x-icon name="trash" /> Hapus perangkat</button>
+        <button type="submit" class="btn btn--danger"><x-icon name="trash" /> Hapus pembaca</button>
     </form>
 @endif
 @endsection

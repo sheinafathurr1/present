@@ -3,13 +3,12 @@
 namespace Database\Seeders;
 
 use App\Enums\UserRole;
-use App\Models\Device;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
 /**
- * Data awal minimal: satu akun admin dan satu perangkat pembaca USB.
+ * Data awal minimal: satu akun admin.
  *
  * Data contoh (kelas, siswa, riwayat presensi) tersedia terpisah:
  *   php artisan db:seed --class=DemoSeeder
@@ -35,10 +34,5 @@ class DatabaseSeeder extends Seeder
             $this->command?->line("  Kata sandi : {$password}");
             $this->command?->getOutput()->writeln('');
         }
-
-        Device::firstOrCreate(
-            ['name' => 'Gerbang Utama'],
-            ['location' => 'Pintu masuk sekolah', 'type' => Device::TYPE_USB, 'is_active' => true],
-        );
     }
 }

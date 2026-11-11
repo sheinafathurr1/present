@@ -41,7 +41,7 @@
                 @if ($student->rfid_uid)<code>{{ $student->rfid_uid }}</code>@else<span class="badge badge--muted">Belum terdaftar</span>@endif
             </dd></div>
             <div><dt>Kekhususan</dt><dd>{{ $student->disability_type?->label() ?? '—' }}</dd></div>
-            <div><dt>Layar kiosk</dt><dd>{{ $student->feedback_mode->label() }}</dd></div>
+            <div><dt>Saat tap kartu</dt><dd>{{ $student->feedback_mode->label() }}</dd></div>
             <div><dt>Catatan</dt><dd>{!! $student->notes ? nl2br(e($student->notes)) : '—' !!}</dd></div>
         </dl>
     </section>

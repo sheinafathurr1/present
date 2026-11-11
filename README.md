@@ -4,44 +4,61 @@ Aplikasi web presensi siswa memakai kartu RFID, dengan dashboard **Laravel 13**
 (berjalan di **PHP 8.3**). Layar presensi dan dashboard dirancang untuk siswa
 dan guru dengan berbagai kebutuhan khusus.
 
+## Cara kerja
+
+```
+ Siswa menempelkan kartu ──▶ Pembaca RFID USB ──▶ PC guru (browser, dashboard terbuka) ──▶ Server Laravel
+                              (bekerja seperti keyboard)          │
+                                                                  ▼
+                       Jendela hasil besar + nada + suara: "Selamat pagi, Budi. Presensi masuk berhasil."
+```
+
+1. Pembaca kartu RFID USB dicolok ke **PC guru**.
+2. Guru login dan membiarkan aplikasi terbuka (halaman apa pun, biasanya dashboard).
+3. Siswa datang dan menempelkan kartu. Hasilnya langsung muncul di layar guru,
+   dibunyikan, dan tercatat di server. Tidak perlu layar atau komputer tambahan.
+
+Beberapa PC guru (mis. tiap ruang kelas) bisa dipakai bersamaan; semuanya mencatat
+ke server yang sama dan log menunjukkan di PC siapa kartu ditempel.
+
 ## Fitur
 
-**Layar presensi (kiosk)**
-- Siswa cukup menempelkan kartu; tidak perlu mengetik atau mengklik apa pun.
-- Umpan balik **ganda**: nada bunyi + suara ucapan bahasa Indonesia + layar warna
-  penuh dengan ikon, kata, nama besar, dan foto siswa.
+**Saat kartu ditempel di PC guru**
+- Jendela hasil besar di tengah layar: warna, ikon, kata (MASUK / TERLAMBAT / PULANG),
+  **nama panggilan**, kelas, dan **foto** siswa — mudah dikenali siswa tunagrahita & autis.
+- Umpan balik **ganda**: nada bunyi + **suara ucapan bahasa Indonesia** + tampilan.
 - **Mode per siswa**:
   - *Utamakan suara* (mis. tunanetra): kalimat lebih lengkap & lambat, menyebut jam
     dan status ("pukul 7 lewat 5 menit… hari ini kamu terlambat").
-  - *Utamakan tampilan* (mis. tunarungu): tanpa ucapan, layar tampil lebih lama,
+  - *Utamakan tampilan* (mis. tunarungu): tanpa ucapan, jendela tampil lebih lama,
     bingkai tebal & cincin berdenyut pelan.
   - *Suara dan tampilan* (bawaan).
-- Disapa dengan **nama panggilan** dan foto agar mudah dikenali (tunagrahita, autis).
-- Status tidak hanya dibedakan warna (aman untuk buta warna); denyutan ≤ 1×/detik
-  (aman untuk epilepsi fotosensitif); menghormati pengaturan *reduce motion*.
-- Huruf **Atkinson Hyperlegible** (dirancang Braille Institute untuk pembaca
-  low vision), disertakan offline.
-- Jam mengikuti server, sesi tetap aktif, dan otomatis muat ulang tiap malam.
+- Penanda **"Siap menerima kartu"** di bilah atas. Saat guru sedang mengetik di kotak
+  isian, pembaca otomatis **dijeda** agar ketikan guru tidak terganggu.
+- Di halaman *Tambah/Ubah Siswa*, kartu yang ditempel **mengisi nomor kartu**
+  (bukan dicatat sebagai presensi) — mendaftarkan kartu jadi sangat mudah.
+- Dashboard dan daftar presensi harian **langsung diperbarui** setelah tap.
+- Status tidak hanya dibedakan warna; denyutan ≤ 1×/detik (aman untuk epilepsi
+  fotosensitif); menghormati pengaturan *reduce motion*.
+- Sesi login dijaga tetap aktif selama halaman terbuka, jadi pembaca tidak tiba-tiba
+  berhenti di tengah pagi.
 
 **Dashboard guru & admin**
-- Ringkasan hari ini yang memperbarui diri: hadir, terlambat, izin/sakit, belum presensi,
-  tap kartu terbaru, tren 7 hari, status perangkat.
+- Ringkasan hari ini: hadir, terlambat, izin/sakit, **daftar siswa yang belum presensi**,
+  tap kartu terbaru, tren 7 hari.
 - Presensi harian per kelas; guru mencatat **izin / sakit / alpa** beserta catatan.
 - Tombol "tandai yang belum presensi sebagai Alpa" (juga otomatis tiap sore).
 - **Rekap bulanan** per kelas (H/T/I/S/A, % kehadiran) → cetak atau **unduh CSV untuk Excel**.
 - Data siswa lengkap dengan jenis kekhususan, kontak wali, catatan pendamping, foto.
-- **Daftarkan kartu** cukup dengan menempelkannya di pembaca USB; kartu tak dikenal
-  yang ditempel di pembaca mana pun bisa langsung dipilih.
 - **Impor siswa dari Excel (CSV)**.
 - Kelas dengan jadwal sendiri (mis. SDLB pulang lebih awal), hari libur, hari sekolah.
-- Peran pengguna: **Admin**, **Guru**, **Akun Kiosk** (hanya layar presensi).
-- Tampilan bisa **diperbesar** (A− A A+) dan ada **mode kontras tinggi**; navigasi
-  penuh dengan keyboard, label & pesan galat ramah pembaca layar.
+- Peran pengguna: **Admin** dan **Guru**.
+- Tampilan bisa **diperbesar** (A− A A+) dan ada **mode kontras tinggi**; huruf
+  **Atkinson Hyperlegible** (dirancang Braille Institute untuk low vision) tersimpan
+  offline; navigasi penuh dengan keyboard; ramah pembaca layar.
 
-**Pembaca kartu**
-- **Pembaca USB** (mode keyboard) + browser di komputer mana pun — paling mudah.
-- **Pembaca jaringan ESP32 + RC522** lewat API ber-token — contoh program & skema
-  rangkaian di [`hardware/`](hardware/README.md).
+**Opsional:** pembaca kartu mandiri **ESP32 + RC522** lewat Wi-Fi (mis. untuk pintu
+asrama) — contoh program & skema di [`hardware/`](hardware/README.md).
 
 ## Aturan presensi
 
@@ -134,7 +151,10 @@ php artisan db:seed --class=DemoSeeder
 ```
 
 Membuat 4 kelas, 25 siswa beserta kartu, riwayat 3 minggu, serta akun
-`guru@sekolah.test` dan `kiosk@sekolah.test` (kata sandi `password`).
+`guru@sekolah.test` (kata sandi `password`).
+
+Tanpa pembaca kartu pun alur tap bisa dicoba: buka dashboard, klik area kosong,
+ketik nomor kartu seorang siswa (lihat menu Siswa), lalu tekan Enter.
 
 ### Penjadwal otomatis
 
@@ -158,18 +178,37 @@ tombol di halaman **Presensi Harian** atau perintah:
 php artisan presensi:tandai-alpa --tanggal=2026-11-11
 ```
 
+## Menyiapkan PC guru
+
+1. Colok pembaca RFID USB (jenis *keyboard emulation*). Uji di Notepad: tempel kartu,
+   bila muncul angka lalu pindah baris, pembaca sudah berfungsi.
+2. Buka aplikasi di Chrome/Edge (`http://IP-SERVER`), login sebagai guru, centang
+   *Ingat saya*.
+3. Pastikan penanda di bilah atas berbunyi **Siap menerima kartu**.
+4. Tempel satu kartu untuk mencoba. Tombol **Suara** di bilah atas untuk mematikan/menyalakan suara.
+
+> **Penting:** pembaca USB "mengetik" ke jendela yang sedang aktif. Selama jam
+> presensi, biarkan **jendela browser aplikasi ini di depan**. Bila guru sedang
+> membuka Word/Excel, nomor kartu akan terketik di sana, bukan tercatat.
+
+Agar suara ucapan terdengar natural, pasang suara **Bahasa Indonesia** di Windows
+(*Settings → Time & Language → Speech → Add voices → Indonesian*). Chrome yang
+terhubung internet juga menyediakan suara "Google Bahasa Indonesia".
+
+Daftarkan kartu memakai jenis pembaca yang sama dengan yang dipakai untuk presensi
+(pembaca berbeda bisa membaca kartu yang sama dengan format nomor berbeda).
+
 ## Penggunaan sehari-hari
 
 1. **Admin** mengisi *Pengaturan*, *Kelas*, *Hari Libur*, lalu data *Siswa*
    (satu per satu atau impor CSV).
-2. **Daftarkan kartu**: buka *Siswa → Ubah*, klik kotak *Nomor kartu*, tempelkan kartu
-   ke pembaca USB. Atau tempel kartu baru di pembaca mana pun, lalu buka
-   *Log Tap Kartu → Daftarkan kartu*.
-3. Isi **jenis kekhususan** siswa; mode umpan balik kiosk akan diusulkan otomatis
+2. **Daftarkan kartu**: buka *Siswa → Tambah/Ubah*, lalu tempelkan kartu siswa ke
+   pembaca — nomor kartu terisi sendiri. Kartu yang ditempel di dashboard tetapi belum
+   terdaftar juga bisa didaftarkan dari *Log Tap Kartu → Daftarkan kartu*.
+3. Isi **jenis kekhususan** siswa; mode umpan balik akan diusulkan otomatis
    (tunanetra → utamakan suara, tunarungu → utamakan tampilan).
-4. Pasang **layar kiosk** di gerbang (lihat [`hardware/README.md`](hardware/README.md)).
-5. **Guru** memantau dashboard, mencatat izin/sakit di *Presensi Harian*, dan
-   mengunduh *Rekap Bulanan*.
+4. **Guru** membuka dashboard di PC yang tersambung pembaca; siswa menempelkan kartu.
+5. Guru mencatat izin/sakit di *Presensi Harian* dan mengunduh *Rekap Bulanan*.
 
 ## Notifikasi ke orang tua (pengembangan lanjutan)
 
@@ -182,7 +221,7 @@ php artisan make:listener SendGuardianNotification --event=AttendanceRecorded
 
 Di dalam `handle()`, ambil `$event->attendance->student->guardian_phone` lalu kirim
 pesan lewat HTTP client Laravel. Jadikan listener `ShouldQueue` dan jalankan
-`php artisan queue:work` agar layar kiosk tidak menunggu pengiriman pesan.
+`php artisan queue:work` agar PC guru tidak menunggu pengiriman pesan.
 
 ## Untuk pengembang
 
@@ -202,16 +241,16 @@ Struktur penting:
 | `app/Services/TapOutcome.php` | Teks layar, ucapan, dan baris LCD untuk setiap hasil tap |
 | `app/Support/SchoolSettings.php` | Pengaturan sekolah (tabel `settings`) |
 | `app/Support/MonthlyReport.php` | Matriks rekap bulanan |
-| `app/Http/Controllers/KioskController.php` | Layar kiosk (pembaca USB) |
-| `app/Http/Controllers/Api/DeviceTapController.php` | API pembaca jaringan |
-| `public/js/kiosk.js`, `public/css/kiosk.css` | Layar kiosk |
+| `app/Http/Controllers/TapController.php` | Tap dari pembaca USB di PC guru |
+| `app/Http/Controllers/Api/DeviceTapController.php` | API pembaca Wi-Fi (opsional) |
+| `public/js/card-reader.js` | Penangkap ketikan pembaca USB, jendela hasil, nada & suara |
 | `public/js/app.js`, `public/css/app.css` | Dashboard |
-| `hardware/` | Panduan & program ESP32 |
+| `hardware/` | Panduan pembaca USB & program ESP32 |
 
 ## Sebelum dipakai di sekolah
 
 - Set `APP_ENV=production` dan `APP_DEBUG=false` di `.env`.
-- Ganti kata sandi admin, buat akun guru & kiosk masing-masing.
+- Ganti kata sandi admin, buat akun untuk setiap guru.
 - Jalankan `php artisan config:cache` dan `php artisan route:cache` setelah mengubah `.env`.
 - Cadangkan database secara rutin (mis. ekspor phpMyAdmin mingguan).
-- Server sebaiknya memakai IP tetap di jaringan sekolah agar pembaca ESP32 tidak kehilangan alamat.
+- Server sebaiknya memakai IP tetap di jaringan sekolah agar PC guru (dan pembaca ESP32, bila ada) selalu menemukan alamatnya.

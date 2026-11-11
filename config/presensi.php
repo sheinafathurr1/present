@@ -32,7 +32,6 @@ return [
         'check_out_start' => '12:00',
         'tap_cooldown_seconds' => 60,
         'school_days' => [1, 2, 3, 4, 5, 6],
-        'kiosk_message' => 'Tempelkan kartu kamu di alat pembaca',
     ],
 
 ];

@@ -27,7 +27,7 @@
         <h2 id="kolom">Kolom yang dikenali</h2>
         <dl class="details details--compact">
             <div><dt><code>nis</code>, <code>nama</code></dt><dd>Wajib</dd></div>
-            <div><dt><code>nama_panggilan</code></dt><dd>Untuk sapaan di kiosk</dd></div>
+            <div><dt><code>nama_panggilan</code></dt><dd>Untuk sapaan saat tap kartu</dd></div>
             <div><dt><code>jenis_kelamin</code></dt><dd>L atau P</dd></div>
             <div><dt><code>kelas</code>, <code>jenjang</code></dt><dd>Mis. "Kelas 1A", "SDLB"</dd></div>
             <div><dt><code>jenis_disabilitas</code></dt><dd>Kode A, B, C, C1, D, E, G, Q</dd></div>

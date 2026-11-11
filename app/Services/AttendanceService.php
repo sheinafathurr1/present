@@ -16,8 +16,8 @@ use Illuminate\Database\UniqueConstraintViolationException;
 use InvalidArgumentException;
 
 /**
- * Semua aturan presensi ada di sini, supaya kiosk (pembaca USB) dan API
- * (pembaca jaringan) selalu berperilaku sama.
+ * Semua aturan presensi ada di sini, supaya tap di pembaca USB pada PC guru
+ * dan di pembaca jaringan (API) selalu berperilaku sama.
  *
  * Aturan tap kartu:
  *  1. Tap pertama hari itu  = presensi MASUK. Lewat batas terlambat → "Terlambat".
@@ -29,7 +29,11 @@ class AttendanceService
 {
     public function __construct(private SchoolSettings $settings) {}
 
-    public function handleTap(string $rawUid, ?Device $device = null, ?CarbonInterface $at = null): TapOutcome
+    /**
+     * @param  Device|null  $device  Pembaca jaringan yang mengirim tap.
+     * @param  User|null  $user  Guru yang PC-nya menerima tap dari pembaca USB.
+     */
+    public function handleTap(string $rawUid, ?Device $device = null, ?CarbonInterface $at = null, ?User $user = null): TapOutcome
     {
         $uid = Student::normalizeUid($rawUid);
 
@@ -45,11 +49,11 @@ class AttendanceService
         }
 
         if ($student === null) {
-            return $this->log(new TapOutcome(ScanResult::UnknownCard, $uid, $now), $device);
+            return $this->log(new TapOutcome(ScanResult::UnknownCard, $uid, $now), $device, $user);
         }
 
         if (! $student->is_active) {
-            return $this->log(new TapOutcome(ScanResult::Inactive, $uid, $now, $student), $device);
+            return $this->log(new TapOutcome(ScanResult::Inactive, $uid, $now, $student), $device, $user);
         }
 
         try {
@@ -63,7 +67,7 @@ class AttendanceService
             AttendanceRecorded::dispatch($outcome->attendance, $outcome->result);
         }
 
-        return $this->log($outcome, $device);
+        return $this->log($outcome, $device, $user);
     }
 
     private function applyTap(Student $student, string $uid, CarbonInterface $now, ?Device $device): TapOutcome
@@ -115,11 +119,12 @@ class AttendanceService
         return $make(ScanResult::CheckOut, $attendance);
     }
 
-    private function log(TapOutcome $outcome, ?Device $device): TapOutcome
+    private function log(TapOutcome $outcome, ?Device $device, ?User $user): TapOutcome
     {
         RfidScan::create([
             'uid' => $outcome->uid,
             'device_id' => $device?->id,
+            'user_id' => $user?->id,
             'student_id' => $outcome->student?->id,
             'result' => $outcome->result,
             'message' => $outcome->message(),

@@ -25,7 +25,6 @@ class SettingController extends Controller
             'tap_cooldown_seconds' => ['required', 'integer', 'min:0', 'max:3600'],
             'school_days' => ['required', 'array', 'min:1'],
             'school_days.*' => ['integer', 'between:1,7'],
-            'kiosk_message' => ['required', 'string', 'max:150'],
         ], [
             'check_out_start.after' => 'Jam mulai pulang harus setelah batas jam masuk.',
             'school_days.required' => 'Pilih minimal satu hari sekolah.',

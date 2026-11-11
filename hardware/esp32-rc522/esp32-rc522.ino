@@ -10,6 +10,9 @@
  *   - LiquidCrystal I2C  (Frank de Brabander)   ← hanya bila USE_LCD = 1
  * Board: "ESP32 Dev Module" (paket esp32 by Espressif).
  *
+ * Opsional: cara utama presensi adalah pembaca USB di PC guru. Program ini
+ * untuk titik tanpa PC, misalnya pintu asrama.
+ *
  * Rangkaian (lihat juga hardware/README.md):
  *   RC522  SDA → GPIO 5   SCK → GPIO 18   MOSI → GPIO 23   MISO → GPIO 19
  *          RST → GPIO 4   3.3V → 3V3      GND → GND        (IRQ tidak dipakai)
@@ -32,7 +35,7 @@ const char* WIFI_PASSWORD = "kata-sandi-wifi";
 // Alamat server di jaringan sekolah + /api/v1/taps
 const char* SERVER_URL    = "http://192.168.1.10/api/v1/taps";
 
-// Token dari menu Perangkat Pembaca di dashboard (ditampilkan sekali).
+// Token dari menu "Pembaca Wi-Fi" di dashboard (ditampilkan sekali).
 const char* DEVICE_TOKEN  = "dev_GANTI_DENGAN_TOKEN_PERANGKAT";
 
 #define USE_LCD 1   // ganti 0 bila tidak memakai LCD

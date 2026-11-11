@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * Catatan setiap kali kartu ditempel, termasuk kartu yang belum terdaftar.
  */
-#[Fillable(['uid', 'device_id', 'student_id', 'result', 'message', 'scanned_at'])]
+#[Fillable(['uid', 'device_id', 'user_id', 'student_id', 'result', 'message', 'scanned_at'])]
 class RfidScan extends Model
 {
     use Prunable;
@@ -37,6 +37,26 @@ class RfidScan extends Model
     public function device(): BelongsTo
     {
         return $this->belongsTo(Device::class);
+    }
+
+    /**
+     * Guru yang PC-nya menerima tap (pembaca USB).
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /** Nama sumber tap untuk ditampilkan: nama perangkat atau "PC <nama guru>". */
+    public function sourceName(): ?string
+    {
+        if ($this->device) {
+            return $this->device->name;
+        }
+
+        return $this->user ? 'PC '.$this->user->name : null;
     }
 
     /** @return BelongsTo<Student, $this> */

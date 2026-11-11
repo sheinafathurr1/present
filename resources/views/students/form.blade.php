@@ -19,7 +19,7 @@
         <h2 id="sec-kartu"><x-icon name="card" /> Kartu RFID</h2>
         <div class="rfid-capture" data-rfid-capture>
             <x-input name="rfid_uid" label="Nomor kartu (UID)" :value="$student->rfid_uid" autocomplete="off" inputmode="text"
-                     hint="Klik kotak ini lalu tempelkan kartu ke pembaca USB — nomor akan terisi otomatis. Kosongkan bila siswa belum punya kartu."
+                     hint="Tempelkan kartu siswa ke pembaca USB di PC ini — nomor terisi otomatis (selama halaman ini terbuka, kartu tidak dicatat sebagai presensi). Kosongkan bila siswa belum punya kartu."
                      data-rfid-input class="input input--mono input--lg" />
             <p class="rfid-capture__status" data-rfid-status aria-live="polite"></p>
         </div>
@@ -34,12 +34,12 @@
                             <li>
                                 <button type="button" class="chip" data-fill-uid="{{ $scan->uid }}">
                                     <code>{{ $scan->uid }}</code>
-                                    <span class="muted">{{ $scan->scanned_at->diffForHumans() }}{{ $scan->device ? ' · '.$scan->device->name : '' }}</span>
+                                    <span class="muted">{{ $scan->scanned_at->diffForHumans() }}{{ $scan->sourceName() ? ' · '.$scan->sourceName() : '' }}</span>
                                 </button>
                             </li>
                         @endforeach
                     </ul>
-                    <p class="hint">Pilih salah satu untuk memakainya, misalnya kartu yang ditempel di pembaca jaringan.</p>
+                    <p class="hint">Pilih salah satu untuk memakainya, misalnya kartu yang tadi ditempel di PC guru lain atau di pembaca Wi-Fi.</p>
                 </div>
             </div>
         @endif
@@ -49,7 +49,7 @@
         <h2 id="sec-identitas"><x-icon name="user" /> Identitas</h2>
         <div class="form-grid">
             <x-input name="name" label="Nama lengkap" :value="$student->name" required autocomplete="off" />
-            <x-input name="nickname" label="Nama panggilan" :value="$student->nickname" hint="Dipakai untuk menyapa siswa di layar & suara kiosk." />
+            <x-input name="nickname" label="Nama panggilan" :value="$student->nickname" hint="Dipakai untuk menyapa siswa (tulisan & suara) saat tap kartu." />
             <x-input name="nis" label="NIS" :value="$student->nis" required />
             <x-input name="nisn" label="NISN" :value="$student->nisn" />
             <x-select name="gender" label="Jenis kelamin" :value="$student->gender" placeholder="— Pilih —" :options="['L' => 'Laki-laki', 'P' => 'Perempuan']" />
@@ -59,11 +59,11 @@
     </section>
 
     <section class="card" aria-labelledby="sec-kebutuhan">
-        <h2 id="sec-kebutuhan"><x-icon name="eye" /> Kebutuhan khusus & layar kiosk</h2>
+        <h2 id="sec-kebutuhan"><x-icon name="eye" /> Kebutuhan khusus & cara memberi tahu saat tap</h2>
         <div class="form-grid">
             <x-select name="disability_type" label="Jenis kekhususan" :value="$student->disability_type" placeholder="— Tidak diisi —"
                       :options="collect($disabilityTypes)->mapWithKeys(fn ($t) => [$t->value => $t->label()])->all()" data-disability-select />
-            <x-select name="feedback_mode" label="Cara kiosk memberi tahu" :value="$student->feedback_mode ?? 'both'" required
+            <x-select name="feedback_mode" label="Saat kartu ditempel" :value="$student->feedback_mode ?? 'both'" required
                       :options="collect($feedbackModes)->mapWithKeys(fn ($m) => [$m->value => $m->label()])->all()"
                       hint="Tunanetra: utamakan suara. Tunarungu: utamakan tampilan." data-feedback-select />
         </div>
@@ -85,7 +85,7 @@
                 <img src="{{ $student->photoUrl() }}" alt="Foto {{ $student->name }} saat ini" class="avatar avatar--xl">
             @endif
             <div>
-                <x-input name="photo" label="Foto siswa" type="file" accept="image/*" hint="Ditampilkan besar di layar kiosk agar siswa mengenali dirinya. Maks. 2 MB." />
+                <x-input name="photo" label="Foto siswa" type="file" accept="image/*" hint="Ditampilkan besar saat tap kartu agar siswa mengenali dirinya. Maks. 2 MB." />
                 @if ($student->photoUrl())
                     <label class="check"><input type="checkbox" name="remove_photo" value="1"> <span>Hapus foto</span></label>
                 @endif
