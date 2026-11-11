@@ -71,6 +71,8 @@ Route::middleware('auth')->group(function () {
 
         Route::get('hari-libur', [HolidayController::class, 'index'])->name('holidays.index');
         Route::post('hari-libur', [HolidayController::class, 'store'])->name('holidays.store');
+        Route::post('hari-libur/perbarui', [HolidayController::class, 'sync'])->name('holidays.sync');
+        Route::patch('hari-libur/{holiday}/masuk', [HolidayController::class, 'toggle'])->name('holidays.toggle');
         Route::delete('hari-libur/{holiday}', [HolidayController::class, 'destroy'])->name('holidays.destroy');
 
         Route::resource('pengguna', UserController::class)

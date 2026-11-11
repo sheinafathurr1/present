@@ -11,5 +11,8 @@ Schedule::command('presensi:tandai-alpa')
     ->dailyAt(config('presensi.absent_marking_time', '16:00'))
     ->withoutOverlapping();
 
+// Perbarui libur nasional & cuti bersama (tahun ini dan tahun depan) tiap Senin pagi.
+Schedule::command('presensi:sinkron-libur')->weeklyOn(1, '05:30');
+
 // Hapus log scan kartu yang lebih lama dari PRESENSI_SCAN_RETENTION_DAYS.
 Schedule::command('model:prune')->dailyAt('01:00');

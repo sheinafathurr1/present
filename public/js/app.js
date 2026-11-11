@@ -170,6 +170,47 @@
         });
     }
 
+    /* ---------- Kalender hari libur ---------- */
+
+    // Di layar kecil (kalender bisa digeser), langsung buka bulan ini.
+    var calGrid = document.querySelector('[data-cal-grid]');
+    var calCurrent = calGrid && calGrid.querySelector('[data-cal-current]');
+    if (calCurrent && calGrid.scrollWidth > calGrid.clientWidth) {
+        calGrid.scrollLeft = calCurrent.offsetLeft - calGrid.offsetLeft - 16;
+    }
+
+    document.querySelectorAll('[data-cal-day]').forEach(function (day) {
+        day.addEventListener('click', function () {
+            var date = day.dataset.calDay;
+
+            // Tanggal libur: tampilkan keterangannya di daftar.
+            if (day.hasAttribute('data-holiday')) {
+                var item = document.getElementById('libur-' + date);
+                if (item) {
+                    item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    item.classList.remove('is-flash');
+                    void item.offsetWidth;
+                    item.classList.add('is-flash');
+                }
+                return;
+            }
+
+            // Tanggal kosong: isi formulir libur sekolah.
+            var start = document.getElementById('f-date');
+            var end = document.getElementById('f-end_date');
+            var name = document.getElementById('f-name');
+            if (!start) return;
+            if (start.value && !end.value && date > start.value) {
+                end.value = date;          // klik kedua: tanggal akhir rentang
+            } else {
+                start.value = date;
+                end.value = '';
+            }
+            document.getElementById('form-libur').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            name.focus({ preventScroll: true });
+        });
+    });
+
     /* ---------- Dashboard yang memperbarui diri ---------- */
 
     var live = document.getElementById('live-dashboard');

@@ -46,6 +46,13 @@
             </div>
             @error('school_days')<p class="error"><x-icon name="alert" :size="16" /> {{ $message }}</p>@enderror
         </fieldset>
+
+        <label class="check check--lg">
+            <input type="hidden" name="joint_holidays_off" value="0">
+            <input type="checkbox" name="joint_holidays_off" value="1" @checked(old('joint_holidays_off', $settings->jointHolidaysAreOff()))>
+            <span><strong>Cuti bersama dihitung hari libur</strong><br>
+                <span class="muted">Libur nasional & cuti bersama diambil otomatis (lihat menu Hari Libur). Matikan bila sekolah tetap masuk saat cuti bersama.</span></span>
+        </label>
     </section>
 
     <div class="form-actions">

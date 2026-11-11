@@ -39,7 +39,7 @@ class SeederTest extends TestCase
         $this->assertSame(1, Student::where('is_active', false)->count());
         $this->assertSame(3, Student::whereNull('rfid_uid')->count());
         $this->assertTrue(Student::where('rfid_uid', '1001')->exists());
-        $this->assertSame(2, Holiday::count());
+        $this->assertSame(2, Holiday::where('type', Holiday::TYPE_SCHOOL)->count());
         $this->assertSame(1, Device::count());
 
         // Riwayat sejak awal bulan lalu, dengan berbagai status.

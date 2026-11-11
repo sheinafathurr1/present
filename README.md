@@ -54,7 +54,9 @@ ke server yang sama dan log menunjukkan di PC siapa kartu ditempel.
 - **Rekap bulanan** per kelas (H/T/I/S/A, % kehadiran) → cetak atau **unduh CSV untuk Excel**.
 - Data siswa lengkap dengan jenis kekhususan, kontak wali, catatan pendamping, foto.
 - **Impor siswa dari Excel (CSV)**.
-- Kelas dengan jadwal sendiri (mis. SDLB pulang lebih awal), hari libur, hari sekolah.
+- Kelas dengan jadwal sendiri (mis. SDLB pulang lebih awal) dan pilihan hari sekolah.
+- **Libur nasional & cuti bersama terisi otomatis** (lihat bagian *Hari libur nasional*),
+  ditampilkan di **kalender satu tahun** pada menu Hari Libur, ditambah libur sekolah sendiri.
 - Peran pengguna: **Admin** dan **Guru**.
 - Tampilan bisa **diperbesar** (A− A A+) dan ada **mode kontras tinggi**; huruf
   **Plus Jakarta Sans** tersimpan offline; navigasi penuh dengan keyboard; ramah
@@ -173,10 +175,37 @@ php artisan migrate:fresh --seed
 menjalankan `composer run setup` (atau `php artisan migrate:fresh --seed --force`).
 Hasilnya hanya satu akun admin dengan kata sandi acak, tanpa data uji coba.
 
+### Hari libur nasional
+
+Libur nasional dan cuti bersama Indonesia diambil otomatis dari kalender publik
+**"Hari libur di Indonesia"** (Google Kalender):
+
+- saat `composer run setup` / `php artisan db:seed`,
+- otomatis tiap **Senin pukul 05.30** (butuh scheduler, lihat di bawah),
+- atau kapan saja lewat tombol **Perbarui libur nasional** di menu **Hari Libur**, maupun perintah:
+
+```bash
+php artisan presensi:sinkron-libur
+```
+
+Yang diambil hanya hari libur resmi dan cuti bersama; perayaan yang bukan hari libur
+(mis. "1 Ramadan") dilewati. Tanggal yang belum ditetapkan pemerintah ditandai
+**"Belum pasti"** dan ikut diperbarui saat sudah resmi.
+
+- **Cuti bersama** dihitung libur secara bawaan. Ubah di **Pengaturan** bila sekolah tetap masuk.
+- Setiap libur nasional bisa ditandai **"Tetap masuk sekolah"** di menu Hari Libur;
+  pilihan ini tidak hilang saat data diperbarui.
+- Libur sekolah yang Anda tambahkan sendiri tidak pernah ditimpa.
+- **Tanpa internet**, tetap terisi libur yang tanggalnya pasti: Tahun Baru, Wafat Isa Almasih,
+  Paskah, Hari Buruh, Kenaikan Isa Almasih, Hari Lahir Pancasila, 17 Agustus, dan Natal.
+  Idul Fitri, Idul Adha, Imlek, Nyepi, Waisak, dll. baru terisi saat server terhubung internet.
+- Sumber lain berformat `.ics` bisa dipakai lewat `PRESENSI_HOLIDAY_ICS_URL` di `.env`.
+
 ### Penjadwal otomatis
 
 Penandaan **Alpa** otomatis (bawaan pukul 16.00, ubah dengan
-`PRESENSI_ABSENT_MARKING_TIME`) dan pembersihan log lama membutuhkan scheduler.
+`PRESENSI_ABSENT_MARKING_TIME`), pembaruan libur nasional tiap minggu, dan pembersihan
+log lama membutuhkan scheduler.
 
 Linux (crontab):
 

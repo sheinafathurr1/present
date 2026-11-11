@@ -4,13 +4,15 @@ namespace Database\Seeders;
 
 use App\Enums\UserRole;
 use App\Models\User;
+use App\Services\NationalHolidaySync;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
 /**
  * Seeder utama (`php artisan db:seed`, juga dipanggil `composer run setup`).
  *
- *  - Selalu: membuat satu akun admin bila belum ada.
+ *  - Selalu: membuat satu akun admin bila belum ada, dan mengisi libur
+ *    nasional & cuti bersama tahun ini dan tahun depan.
  *  - Bila APP_ENV=local: juga mengisi data uji coba lengkap (DemoSeeder) dan
  *    memakai kata sandi "password" agar mudah dicoba.
  *  - Bila APP_ENV=production: hanya admin, dengan kata sandi acak yang
@@ -23,10 +25,20 @@ class DatabaseSeeder extends Seeder
         $forTrial = app()->environment('local');
 
         self::ensureAdmin($forTrial ? DemoSeeder::PASSWORD : null, $this->command);
+        $this->seedNationalHolidays();
 
         if ($forTrial) {
             $this->call(DemoSeeder::class);
         }
+    }
+
+    private function seedNationalHolidays(): void
+    {
+        $result = app(NationalHolidaySync::class)->sync([now()->year, now()->year + 1]);
+
+        $this->command?->info($result['source'] === NationalHolidaySync::SOURCE_INTERNET
+            ? "Libur nasional & cuti bersama diambil dari internet ({$result['added']} hari)."
+            : 'Tanpa internet: baru libur bertanggal tetap yang diisi. Jalankan `php artisan presensi:sinkron-libur` saat online.');
     }
 
     /**
