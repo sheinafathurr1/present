@@ -80,16 +80,18 @@ kelas boleh punya jadwal sendiri.
 
 ## Kebutuhan
 
-- PHP **8.3.x** dengan ekstensi `pdo_mysql` (atau `pdo_sqlite`), `mbstring`, `intl`,
-  `fileinfo`, `gd`, `openssl`, `zip`
+- PHP **8.3.x** dengan ekstensi `pdo_mysql`, `mbstring`, `intl`, `fileinfo`, `gd`,
+  `openssl`, `zip` (dan `pdo_sqlite` hanya untuk menjalankan tes otomatis)
 - Composer 2
-- MySQL 8 / MariaDB 10.6+ (disarankan) atau SQLite
+- **MySQL 8 / MariaDB 10.6+** (sudah termasuk di Laragon & XAMPP)
 - Tidak perlu Node.js — CSS & JavaScript sudah siap pakai tanpa proses build.
 
 Cocok dijalankan di **Laragon** atau **XAMPP** (Windows) maupun server Linux di
 jaringan lokal sekolah. Aplikasi tidak membutuhkan internet setelah terpasang.
 
 ## Instalasi
+
+Pastikan MySQL/MariaDB sudah berjalan (di Laragon: *Start All*; di XAMPP: *Start* pada MySQL).
 
 ```bash
 git clone <alamat-repo> presensi-sekolah
@@ -100,14 +102,11 @@ cd presensi-sekolah
 ```
 
 ```bash
-composer install
-```
-
-```bash
 cp .env.example .env
 ```
 
-Buka `.env`, lalu sesuaikan:
+Buka `.env`, lalu sesuaikan bila perlu. Bawaannya sudah cocok untuk Laragon/XAMPP
+(user `root` tanpa kata sandi):
 
 ```dotenv
 APP_NAME="Sekolah Contoh"
@@ -122,23 +121,20 @@ DB_USERNAME=root
 DB_PASSWORD=
 ```
 
-Buat database `presensi_sekolah` (mis. lewat phpMyAdmin), lalu:
+Lalu jalankan satu perintah ini:
 
 ```bash
-php artisan key:generate
+composer run setup
 ```
 
-```bash
-php artisan migrate --seed
-```
+Perintah tersebut memasang dependensi, membuat kunci aplikasi, **membuat database
+`presensi_sekolah` bila belum ada**, membuat semua tabel beserta **akun admin**, dan
+menautkan folder foto. Kata sandi admin ditampilkan di layar — catat lalu ganti setelah
+login. Anda juga bisa menentukannya sendiri lewat `ADMIN_EMAIL` dan `ADMIN_PASSWORD`
+di `.env` sebelum menjalankan setup.
 
-```bash
-php artisan storage:link
-```
-
-Perintah `migrate --seed` membuat **akun admin** dan menampilkan kata sandinya di
-layar — catat lalu ganti setelah login. Anda juga bisa menentukannya sendiri lewat
-`ADMIN_EMAIL` dan `ADMIN_PASSWORD` di `.env` sebelum menjalankan seed.
+Bila user MySQL Anda tidak boleh membuat database, buat dulu database
+`presensi_sekolah` (collation `utf8mb4_unicode_ci`) lewat phpMyAdmin.
 
 Uji coba cepat:
 
