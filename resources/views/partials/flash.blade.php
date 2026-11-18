@@ -21,16 +21,3 @@
         </div>
     </div>
 @endif
-@if (session('import_errors'))
-    <div class="alert alert--warning" role="status">
-        <x-icon name="info" />
-        <div>
-            <strong>Beberapa baris dilewati atau disesuaikan:</strong>
-            <ul>
-                @foreach (session('import_errors') as $message)
-                    <li>{{ $message }}</li>
-                @endforeach
-            </ul>
-        </div>
-    </div>
-@endif
