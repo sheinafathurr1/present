@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\SchoolSettings;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -37,6 +38,13 @@ class Holiday extends Model
             'is_tentative' => 'boolean',
             'is_school_day' => 'boolean',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        $flush = fn () => app(SchoolSettings::class)->flushHolidayCache();
+        static::saved($flush);
+        static::deleted($flush);
     }
 
     public static function isHoliday(string $date): bool

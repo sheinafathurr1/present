@@ -3,146 +3,107 @@
 namespace App\Support;
 
 use App\Enums\AttendanceStatus;
+use App\Enums\EmployeeType;
 use App\Models\Attendance;
 use App\Models\Holiday;
-use App\Models\SchoolClass;
-use App\Models\Student;
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
 /**
- * Rekap bulanan per kelas: matriks siswa × tanggal berisi kode H/T/I/S/A.
- *
- * Hari sekolah yang sudah lewat tetapi tidak ada catatan presensinya
- * ditampilkan "–" dan dihitung sebagai Alpa (tanpa keterangan). Hari ini
- * belum dihitung alpa karena hari sekolah masih berjalan.
+ * Rekap kehadiran bulanan guru & staf: matriks orang × tanggal beserta jumlahnya.
  */
 class MonthlyReport
 {
-    /** @var list<array{date: CarbonImmutable, day: int, school_day: bool, past: bool, today: bool, holiday: ?string}> */
-    public array $days = [];
-
-    /** @var Collection<int, array<string, mixed>> */
-    public Collection $rows;
-
-    /** Hari sekolah yang sudah berjalan (termasuk hari ini). */
-    public int $schoolDaysElapsed = 0;
-
-    /** Hari sekolah sebelum hari ini. */
-    private int $schoolDaysBeforeToday = 0;
-
-    private bool $todayIsSchoolDay = false;
-
-    public function __construct(
-        public CarbonImmutable $month,
-        public ?SchoolClass $class,
-        SchoolSettings $settings,
-    ) {
+    /**
+     * @param  Collection<int, User>|null  $users  bawaan: semua yang wajib presensi
+     * @return array{
+     *     month: CarbonImmutable,
+     *     days: list<array{date: string, day: int, weekday: string, school: bool, holiday: ?string, today: bool, future: bool}>,
+     *     rows: list<array{user: User, cells: array<string, ?Attendance>, totals: array<string, int>, missing: int, late_minutes: int, early_count: int, school_days: int, percentage: int}>,
+     *     school_day_count: int,
+     *     totals: array<string, int>,
+     * }
+     */
+    public static function build(CarbonImmutable $month, SchoolSettings $settings, ?EmployeeType $type = null, ?Collection $users = null): array
+    {
         $start = $month->startOfMonth();
-        $end = $month->endOfMonth();
+        $end = $month->endOfMonth()->startOfDay();
         $today = CarbonImmutable::today();
 
-        $holidays = Holiday::off()->whereBetween('date', [$start->toDateString(), $end->toDateString()])
-            ->pluck('name', 'date');
+        $holidays = Holiday::off()->whereBetween('date', [$start->toDateString(), $end->toDateString()])->pluck('name', 'date');
+        $schoolDays = $settings->schoolDays();
 
+        $days = [];
         for ($date = $start; $date->lte($end); $date = $date->addDay()) {
-            $isSchoolDay = in_array($date->dayOfWeekIso, $settings->schoolDays(), true)
-                && ! $holidays->has($date->toDateString());
-            $isPast = $date->lt($today);
-            $isToday = $date->equalTo($today);
-
-            $this->days[] = [
-                'date' => $date,
+            $key = $date->toDateString();
+            $days[] = [
+                'date' => $key,
                 'day' => $date->day,
-                'school_day' => $isSchoolDay,
-                'past' => $isPast,
-                'today' => $isToday,
-                'holiday' => $holidays->get($date->toDateString()),
+                'weekday' => $date->translatedFormat('D'),
+                'label' => $date->translatedFormat('l, d F Y'),
+                'school' => in_array($date->dayOfWeekIso, $schoolDays, true) && ! isset($holidays[$key]),
+                'holiday' => $holidays[$key] ?? null,
+                'today' => $date->isSameDay($today),
+                'future' => $date->gt($today),
             ];
-
-            if ($isSchoolDay && $isPast) {
-                $this->schoolDaysBeforeToday++;
-            }
-
-            if ($isSchoolDay && $isToday) {
-                $this->todayIsSchoolDay = true;
-            }
         }
 
-        $this->schoolDaysElapsed = $this->schoolDaysBeforeToday + ($this->todayIsSchoolDay ? 1 : 0);
-
-        $students = Student::query()
-            ->when($class, fn ($query) => $query->where('school_class_id', $class->id))
-            ->where(fn ($query) => $query->where('is_active', true)->orWhereHas('attendances', fn ($q) => $q
-                ->whereBetween('date', [$start->toDateString(), $end->toDateString()])))
-            ->with('schoolClass')
+        $users ??= User::attending()
+            ->when($type, fn ($query) => $query->where('employee_type', $type))
             ->orderBy('name')
             ->get();
 
-        $attendances = Attendance::whereIn('student_id', $students->pluck('id'))
+        $attendances = Attendance::whereIn('user_id', $users->pluck('id'))
             ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
+            ->when($users->count() === 1, fn ($query) => $query->with('leaveRequest'))
             ->get()
-            ->groupBy('student_id')
-            ->map(fn (Collection $items) => $items->keyBy('date'));
+            ->groupBy('user_id');
 
-        $this->rows = $students->map(fn (Student $student) => $this->buildRow(
-            $student,
-            $attendances->get($student->id, collect()),
-        ));
-    }
+        $statusKeys = array_map(fn (AttendanceStatus $status) => $status->value, AttendanceStatus::cases());
+        $grand = array_fill_keys($statusKeys, 0);
+        $countable = array_filter($days, fn (array $day) => $day['school'] && ! $day['future']);
 
-    /**
-     * @param  Collection<string, Attendance>  $attendances
-     * @return array<string, mixed>
-     */
-    private function buildRow(Student $student, Collection $attendances): array
-    {
-        $counts = array_fill_keys(['H', 'T', 'I', 'S', 'A'], 0);
-        $cells = [];
-        $elapsed = $this->schoolDaysBeforeToday;
+        $rows = [];
+        foreach ($users as $user) {
+            $byDate = ($attendances[$user->id] ?? collect())->keyBy('date');
+            $totals = array_fill_keys($statusKeys, 0);
+            $cells = [];
+            $missing = 0;
 
-        foreach ($this->days as $day) {
-            $attendance = $attendances->get($day['date']->toDateString());
+            foreach ($days as $day) {
+                $attendance = $byDate[$day['date']] ?? null;
+                $cells[$day['date']] = $attendance;
 
-            if ($attendance !== null && $day['today'] && $this->todayIsSchoolDay) {
-                $elapsed++;
+                if ($attendance) {
+                    $totals[$attendance->status->value]++;
+                    $grand[$attendance->status->value]++;
+                } elseif ($day['school'] && ! $day['future'] && ! $day['today']) {
+                    $missing++;
+                }
             }
 
-            if ($attendance !== null) {
-                $code = $attendance->status->code();
-                $counts[$code]++;
-                $cells[] = ['code' => $code, 'tone' => $attendance->status->tone(), 'title' => $attendance->status->label()];
-            } elseif ($day['school_day'] && $day['past']) {
-                $counts['A']++;
-                $cells[] = ['code' => '–', 'tone' => 'missing', 'title' => 'Tidak ada catatan (dihitung alpa)'];
-            } else {
-                $cells[] = ['code' => '', 'tone' => $day['school_day'] ? 'future' : 'off', 'title' => $day['holiday'] ?? ''];
-            }
+            $present = $totals['hadir'] + $totals['terlambat'];
+            $schoolDaysSoFar = count($countable);
+
+            $rows[] = [
+                'user' => $user,
+                'cells' => $cells,
+                'totals' => $totals,
+                'missing' => $missing,
+                'late_minutes' => (int) $byDate->sum('late_minutes'),
+                'early_count' => $byDate->where('early_minutes', '>', 0)->count(),
+                'school_days' => $schoolDaysSoFar,
+                'percentage' => $schoolDaysSoFar > 0 ? (int) round($present / $schoolDaysSoFar * 100) : 0,
+            ];
         }
 
-        $present = $counts['H'] + $counts['T'];
-
         return [
-            'student' => $student,
-            'cells' => $cells,
-            'counts' => $counts,
-            'percentage' => $elapsed > 0
-                ? (int) round(min(100, $present / $elapsed * 100))
-                : null,
+            'month' => $start,
+            'days' => $days,
+            'rows' => $rows,
+            'school_day_count' => count(array_filter($days, fn (array $day) => $day['school'])),
+            'totals' => $grand,
         ];
-    }
-
-    public function title(): string
-    {
-        return 'Rekap Presensi '.($this->class?->name ?? 'Semua Kelas').' — '.$this->month->translatedFormat('F Y');
-    }
-
-    /** @return array<string, string> */
-    public static function legend(): array
-    {
-        return collect(AttendanceStatus::cases())
-            ->mapWithKeys(fn (AttendanceStatus $status) => [$status->code() => $status->label()])
-            ->put('–', 'Tidak ada catatan (dihitung alpa)')
-            ->all();
     }
 }

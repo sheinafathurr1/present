@@ -8,6 +8,8 @@ enum AttendanceStatus: string
     case Terlambat = 'terlambat';
     case Izin = 'izin';
     case Sakit = 'sakit';
+    case Cuti = 'cuti';
+    case DinasLuar = 'dinas_luar';
     case Alpa = 'alpa';
 
     public function label(): string
@@ -17,11 +19,13 @@ enum AttendanceStatus: string
             self::Terlambat => 'Terlambat',
             self::Izin => 'Izin',
             self::Sakit => 'Sakit',
+            self::Cuti => 'Cuti',
+            self::DinasLuar => 'Dinas luar',
             self::Alpa => 'Alpa',
         };
     }
 
-    /** Kode singkat untuk rekap bulanan (H/T/I/S/A). */
+    /** Kode singkat untuk rekap bulanan. */
     public function code(): string
     {
         return match ($this) {
@@ -29,20 +33,25 @@ enum AttendanceStatus: string
             self::Terlambat => 'T',
             self::Izin => 'I',
             self::Sakit => 'S',
+            self::Cuti => 'C',
+            self::DinasLuar => 'D',
             self::Alpa => 'A',
         };
     }
 
-    /** Siswa dianggap hadir di sekolah (tepat waktu atau terlambat). */
+    /** Datang ke sekolah (tepat waktu atau terlambat). */
     public function isPresent(): bool
     {
         return in_array($this, [self::Hadir, self::Terlambat], true);
     }
 
-    /**
-     * Nama warna status di CSS (--hadir, --terlambat, --izin, --sakit, --alpa).
-     * Setiap status punya warna sendiri, dan selalu disertai huruf/kata.
-     */
+    /** Tidak hadir dengan keterangan (izin, sakit, cuti, dinas luar). */
+    public function isExcused(): bool
+    {
+        return in_array($this, [self::Izin, self::Sakit, self::Cuti, self::DinasLuar], true);
+    }
+
+    /** Nama warna status di CSS. */
     public function tone(): string
     {
         return $this->value;

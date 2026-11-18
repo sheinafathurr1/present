@@ -14,7 +14,7 @@
 <div class="page-head">
     <div>
         <h1>Hari Libur {{ $year }}</h1>
-        <p class="lead">{{ $offCount }} hari libur · siswa tidak ditandai alpa dan hari ini tidak dihitung di rekap.</p>
+        <p class="lead">{{ $offCount }} hari libur · guru &amp; staf tidak perlu presensi dan tidak ditandai alpa.</p>
     </div>
     <div class="actions">
         <nav class="year-nav" aria-label="Pilih tahun">

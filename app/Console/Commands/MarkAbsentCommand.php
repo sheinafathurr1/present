@@ -9,7 +9,7 @@ use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 
 #[Signature('presensi:tandai-alpa {--tanggal= : Tanggal (Y-m-d), bawaan hari ini}')]
-#[Description('Tandai siswa aktif yang belum presensi sebagai Alpa (dilewati pada hari libur)')]
+#[Description('Tandai guru & staf yang belum presensi atau mengajukan izin sebagai Alpa (dilewati pada hari libur)')]
 class MarkAbsentCommand extends Command
 {
     public function handle(AttendanceService $service): int
@@ -23,7 +23,7 @@ class MarkAbsentCommand extends Command
             return self::SUCCESS;
         }
 
-        $this->components->info("{$count} siswa ditandai Alpa untuk {$date->translatedFormat('l, d F Y')}.");
+        $this->components->info("{$count} guru/staf ditandai Alpa untuk {$date->translatedFormat('l, d F Y')}.");
 
         return self::SUCCESS;
     }

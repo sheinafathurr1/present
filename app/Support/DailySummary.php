@@ -3,68 +3,93 @@
 namespace App\Support;
 
 use App\Enums\AttendanceStatus;
+use App\Enums\EmployeeType;
 use App\Models\Attendance;
-use App\Models\SchoolClass;
-use App\Models\Student;
+use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
 /**
- * Ringkasan jumlah kehadiran untuk satu tanggal (seluruh sekolah & per kelas).
+ * Ringkasan kehadiran guru & staf pada satu hari (untuk dashboard pimpinan).
  */
 class DailySummary
 {
-    /** @var array<string, int> */
-    public array $totals;
-
-    /** @var Collection<int, array<string, mixed>> */
-    public Collection $classes;
-
-    public function __construct(public string $date)
-    {
-        $statusByStudent = Attendance::where('date', $date)->pluck('status', 'student_id');
-        $students = Student::active()->get(['id', 'school_class_id']);
-
-        $this->totals = $this->count($students, $statusByStudent);
-
-        $this->classes = SchoolClass::orderBy('name')->get()
-            ->sortBy(fn (SchoolClass $class) => sprintf('%d-%s', $class->levelOrder(), $class->name))
-            ->map(fn (SchoolClass $class) => [
-                'class' => $class,
-                ...$this->count($students->where('school_class_id', $class->id), $statusByStudent),
-            ])
-            ->filter(fn (array $row) => $row['total'] > 0)
-            ->values();
-    }
+    /** Urutan tampil: yang perlu perhatian lebih dulu. */
+    private const ORDER = ['belum' => 0, 'alpa' => 1, 'terlambat' => 2, 'izin' => 3, 'sakit' => 4, 'cuti' => 5, 'dinas_luar' => 6, 'hadir' => 7];
 
     /**
-     * @param  Collection<int, Student>  $students
-     * @param  Collection<int, AttendanceStatus>  $statusByStudent
-     * @return array<string, int>
+     * @return array{
+     *     rows: Collection<int, array{user: User, attendance: ?Attendance, key: string}>,
+     *     totals: array<string, int>, total: int, present: int, excused: int, percentage: int
+     * }
      */
-    private function count(Collection $students, Collection $statusByStudent): array
+    public static function for(CarbonImmutable $date, ?EmployeeType $type = null): array
     {
-        $statuses = $students->map(fn (Student $student) => $statusByStudent->get($student->id));
-        $countOf = fn (AttendanceStatus $status) => $statuses->filter(fn ($value) => $value === $status)->count();
+        $key = $date->toDateString();
 
-        $hadir = $countOf(AttendanceStatus::Hadir);
-        $terlambat = $countOf(AttendanceStatus::Terlambat);
+        $users = User::attending()
+            ->when($type, fn ($query) => $query->where('employee_type', $type))
+            ->with(['attendances' => fn ($query) => $query->where('date', $key)->with('leaveRequest')])
+            ->orderBy('name')
+            ->get();
+
+        $totals = array_fill_keys(array_keys(self::ORDER), 0);
+
+        $rows = $users->map(function (User $user) use (&$totals) {
+            $attendance = $user->attendances->first();
+            $status = $attendance?->status->value ?? 'belum';
+            $totals[$status]++;
+
+            return ['user' => $user, 'attendance' => $attendance, 'key' => $status];
+        })->sortBy(fn (array $row) => sprintf('%d-%s', self::ORDER[$row['key']], mb_strtolower($row['user']->name)))->values();
+
+        $total = $users->count();
+        $present = $totals['hadir'] + $totals['terlambat'];
 
         return [
-            'total' => $students->count(),
-            'present' => $hadir + $terlambat,
-            'hadir' => $hadir,
-            'terlambat' => $terlambat,
-            'izin' => $countOf(AttendanceStatus::Izin),
-            'sakit' => $countOf(AttendanceStatus::Sakit),
-            'alpa' => $countOf(AttendanceStatus::Alpa),
-            'unrecorded' => $statuses->filter(fn ($value) => $value === null)->count(),
+            'rows' => $rows,
+            'totals' => $totals,
+            'total' => $total,
+            'present' => $present,
+            'excused' => $totals['izin'] + $totals['sakit'] + $totals['cuti'] + $totals['dinas_luar'],
+            'percentage' => $total > 0 ? (int) round($present / $total * 100) : 0,
         ];
     }
 
-    public function percentage(): int
+    /**
+     * Persentase hadir pada beberapa hari sekolah terakhir (termasuk hari ini bila hari sekolah).
+     *
+     * @return list<array{date: string, label: string, percentage: int, today: bool}>
+     */
+    public static function trend(CarbonImmutable $today, SchoolSettings $settings, int $days = 7): array
     {
-        return $this->totals['total'] > 0
-            ? (int) round($this->totals['present'] / $this->totals['total'] * 100)
-            : 0;
+        $dates = [];
+        for ($date = $today, $guard = 0; count($dates) < $days && $guard < 40; $date = $date->subDay(), $guard++) {
+            if ($settings->isSchoolDay($date)) {
+                $dates[] = $date;
+            }
+        }
+        $dates = array_reverse($dates);
+
+        if ($dates === []) {
+            return [];
+        }
+
+        $total = max(1, User::attending()->count());
+        $present = Attendance::query()
+            ->whereBetween('date', [$dates[0]->toDateString(), end($dates)->toDateString()])
+            ->whereIn('status', [AttendanceStatus::Hadir, AttendanceStatus::Terlambat])
+            ->whereHas('user', fn ($query) => $query->attending())
+            ->selectRaw('date, count(*) as aggregate')
+            ->groupBy('date')
+            ->pluck('aggregate', 'date');
+
+        return array_map(fn (CarbonImmutable $date) => [
+            'date' => $date->toDateString(),
+            'label' => $date->translatedFormat('D'),
+            'full' => $date->translatedFormat('l, d F'),
+            'percentage' => (int) round(((int) ($present[$date->toDateString()] ?? 0)) / $total * 100),
+            'today' => $date->isSameDay($today),
+        ], $dates);
     }
 }

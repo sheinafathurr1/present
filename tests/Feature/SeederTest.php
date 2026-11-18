@@ -3,15 +3,12 @@
 namespace Tests\Feature;
 
 use App\Enums\AttendanceStatus;
-use App\Enums\ScanResult;
 use App\Enums\UserRole;
 use App\Models\Attendance;
-use App\Models\Device;
 use App\Models\Holiday;
-use App\Models\RfidScan;
-use App\Models\SchoolClass;
-use App\Models\Student;
+use App\Models\LeaveRequest;
 use App\Models\User;
+use App\Support\SchoolSettings;
 use Database\Seeders\DemoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -24,7 +21,7 @@ class SeederTest extends TestCase
     {
         parent::setUp();
 
-        // Rabu pukul 09.00: hari sekolah, sebagian siswa sudah tap.
+        // Rabu pukul 09.00: hari sekolah, sebagian guru & staf sudah presensi.
         $this->travelTo(now()->setDate(2026, 11, 11)->setTime(9, 0));
     }
 
@@ -32,47 +29,55 @@ class SeederTest extends TestCase
     {
         $this->seed(DemoSeeder::class);
 
+        $this->assertSame(17, User::count());
         $this->assertSame(1, User::where('role', UserRole::Admin)->count());
-        $this->assertSame(4, User::where('role', UserRole::Guru)->count());
-        $this->assertSame(4, SchoolClass::count());
-        $this->assertSame(25, Student::count());
-        $this->assertSame(1, Student::where('is_active', false)->count());
-        $this->assertSame(3, Student::whereNull('rfid_uid')->count());
-        $this->assertTrue(Student::where('rfid_uid', '1001')->exists());
-        $this->assertSame(2, Holiday::where('type', Holiday::TYPE_SCHOOL)->count());
-        $this->assertSame(1, Device::count());
+        $this->assertSame(3, User::where('role', UserRole::Pimpinan)->count());
+        $this->assertSame(1, User::where('is_active', false)->count());
+        $this->assertTrue(app(SchoolSettings::class)->hasLocation());
 
-        // Riwayat sejak awal bulan lalu, dengan berbagai status.
+        // Riwayat sejak awal bulan lalu, dengan semua status.
         $history = Attendance::where('date', '<', '2026-11-11')->get();
-        $this->assertGreaterThan(500, $history->count());
+        $this->assertGreaterThan(400, $history->count());
         foreach (AttendanceStatus::cases() as $status) {
             $this->assertTrue($history->contains('status', $status), "Tidak ada status {$status->value} di riwayat");
         }
-        $this->assertFalse(Attendance::where('date', '2026-10-21')->exists(), 'Hari libur contoh harus kosong');
+        $this->assertTrue($history->contains(fn (Attendance $a) => $a->early_minutes > 0));
+        $this->assertTrue($history->every(fn (Attendance $a) => $a->check_in_distance === null || $a->check_in_distance <= 100));
 
-        // Hari ini: tap lewat PC wali kelas, termasuk tap ulang dan kartu tak dikenal.
-        $this->assertGreaterThan(0, Attendance::where('date', '2026-11-11')->whereNotNull('check_in_at')->count());
-        $this->assertTrue(RfidScan::where('result', ScanResult::Duplicate)->exists());
-        $this->assertTrue(RfidScan::where('uid', DemoSeeder::UNKNOWN_CARD)->where('result', ScanResult::UnknownCard)->exists());
-        $this->assertSame(0, RfidScan::whereNull('user_id')->count());
+        $sample = Holiday::where('type', Holiday::TYPE_SCHOOL)->value('date');
+        $this->assertFalse(Attendance::where('date', $sample)->exists(), 'Hari libur contoh harus kosong');
+
+        // Hari ini: sebagian sudah masuk, dua orang izin, dua belum presensi.
+        $today = Attendance::where('date', '2026-11-11')->get();
+        $this->assertGreaterThan(5, $today->whereNotNull('check_in_at')->count());
+        $this->assertSame(2, $today->filter(fn (Attendance $a) => $a->status->isExcused())->count());
+        $this->assertSame(13, $today->count());
+        $this->assertSame(7, LeaveRequest::count());
     }
 
     public function test_trial_accounts_can_log_in_and_open_pages(): void
     {
         $this->seed(DemoSeeder::class);
 
-        $this->post('/login', ['email' => 'guru@sekolah.test', 'password' => DemoSeeder::PASSWORD])->assertRedirect('/dashboard');
-        $this->get('/dashboard')->assertOk()->assertSee('Kelas 1 SDLB-A');
-        $this->get('/rekap?bulan=2026-10&kelas='.SchoolClass::first()->id)->assertOk()->assertSee('Aditya Pratama');
+        $this->post('/login', ['username' => 'kepsek', 'password' => DemoSeeder::PASSWORD])->assertRedirect('/dashboard');
+        $this->get('/dashboard')->assertOk()->assertSee('Kehadiran Hari Ini')->assertSee('Siti Aminah');
+        $this->get('/rekap?bulan=2026-10')->assertOk()->assertSee('Nur Hidayah');
+        $this->get('/pengajuan?bulan=2026-10')->assertOk()->assertSee('Demam berdarah');
+        $this->post('/logout');
+
+        $this->post('/login', ['username' => 'guru', 'password' => DemoSeeder::PASSWORD])->assertRedirect('/presensi');
+        $this->get('/presensi')->assertOk()->assertSee('Presensi Pulang');
+        $this->get('/riwayat?bulan=2026-10')->assertOk();
     }
 
     public function test_running_the_seeder_twice_does_not_duplicate_data(): void
     {
         $this->seed(DemoSeeder::class);
+        $count = Attendance::count();
         $this->seed(DemoSeeder::class);
 
-        $this->assertSame(25, Student::count());
-        $this->assertSame(5, User::count());
+        $this->assertSame(17, User::count());
+        $this->assertSame($count, Attendance::count());
     }
 
     public function test_main_seeder_fills_trial_data_only_in_local_environment(): void
@@ -82,11 +87,12 @@ class SeederTest extends TestCase
         $this->artisan('db:seed', ['--force' => true])->assertSuccessful();
 
         $this->assertSame(1, User::count());
-        $this->assertSame(0, Student::count());
+        $this->assertFalse(User::first()->must_attend);
+        $this->assertSame(0, Attendance::count());
 
         $this->app['env'] = 'local';
         $this->artisan('db:seed', ['--force' => true])->assertSuccessful();
 
-        $this->assertSame(25, Student::count());
+        $this->assertSame(17, User::count());
     }
 }

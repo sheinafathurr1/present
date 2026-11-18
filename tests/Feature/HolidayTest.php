@@ -111,11 +111,7 @@ class HolidayTest extends TestCase
         app(NationalHolidaySync::class)->sync([2026]);
 
         $this->actingAs(User::factory()->admin()->create())->put('/pengaturan', [
-            'school_name' => 'Sekolah Contoh',
-            'late_after' => '07:15',
-            'check_out_start' => '12:00',
-            'tap_cooldown_seconds' => 60,
-            'school_days' => [1, 2, 3, 4, 5, 6],
+            ...SettingsTest::validPayload(),
             'joint_holidays_off' => '0',
         ])->assertRedirect('/pengaturan');
 

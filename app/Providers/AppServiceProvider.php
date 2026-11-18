@@ -8,7 +8,6 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -23,20 +22,22 @@ class AppServiceProvider extends ServiceProvider
     {
         Carbon::setLocale(config('app.locale'));
 
-        // URL berbahasa Indonesia: /siswa/tambah, /siswa/1/ubah.
-        Route::resourceVerbs(['create' => 'tambah', 'edit' => 'ubah']);
-
         Paginator::defaultView('partials.pagination');
         Paginator::defaultSimpleView('partials.pagination');
 
-        RateLimiter::for('login', fn (Request $request) => Limit::perMinute(5)
-            ->by(strtolower((string) $request->input('email')).'|'.$request->ip()));
+        // Coba-coba kata sandi dibatasi per username+IP, dan per username dari mana pun.
+        RateLimiter::for('login', function (Request $request) {
+            $username = mb_strtolower(trim((string) $request->input('username')));
 
-        RateLimiter::for('device', fn (Request $request) => Limit::perMinute(config('presensi.device_rate_limit', 120))
-            ->by('device:'.($request->attributes->get('device')?->id ?? $request->ip())));
+            return [
+                Limit::perMinute(5)->by('login:'.$username.'|'.$request->ip()),
+                Limit::perMinute(20)->by('login-user:'.$username),
+            ];
+        });
 
-        RateLimiter::for('tap', fn (Request $request) => Limit::perMinute(120)
-            ->by('tap:'.$request->user()?->id.'|'.$request->ip()));
+        // Tombol presensi & pengajuan izin: cukup longgar untuk mencoba ulang saat GPS belum akurat.
+        RateLimiter::for('presence', fn (Request $request) => Limit::perMinute(12)
+            ->by('presence:'.$request->user()?->id));
 
         // Nama sekolah & pengaturan tersedia di semua tampilan (dibaca saat dipakai saja).
         View::composer('*', function ($view) {

@@ -11,13 +11,25 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Setiap guru & staf tendik punya akun sendiri (username + kata sandi).
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('email')->unique();
+            $table->string('username', 50)->unique();
+            $table->string('email')->nullable()->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->string('role', 20)->default('guru')->index();
+            // admin (TU/operator), pimpinan (kepala sekolah, wakil, bendahara: hanya melihat), pegawai.
+            $table->string('role', 20)->default('pegawai')->index();
+            $table->string('employee_type', 10)->default('guru'); // guru / tendik
+            $table->string('position', 100)->nullable();           // jabatan, mis. "Guru Kelas 3"
+            $table->string('nip', 30)->nullable();
+            $table->string('phone', 30)->nullable();
+            $table->boolean('must_attend')->default(true);          // wajib presensi
+            // Jam kerja khusus (kosong = ikut pengaturan guru/tendik).
+            $table->string('work_start', 5)->nullable();
+            $table->string('work_end', 5)->nullable();
+            $table->boolean('is_active')->default(true)->index();
             $table->rememberToken();
             $table->timestamps();
         });

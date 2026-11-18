@@ -8,23 +8,23 @@
         @include('partials.brand-mark', ['size' => 48])
         <div>
             <h1>{{ $schoolSettings->schoolName() }}</h1>
-            <p>Presensi kartu RFID</p>
+            <p>Presensi guru & staf</p>
         </div>
     </div>
 
     <form method="POST" action="{{ route('login') }}" class="card login__card" novalidate>
         @csrf
-        <h2>Masuk ke akun Anda</h2>
-        <p>Gunakan akun yang dibuat oleh admin sekolah.</p>
+        <h2>Masuk</h2>
+        <p>Gunakan username dan kata sandi dari admin sekolah.</p>
 
         @include('partials.flash')
 
-        <x-input name="email" label="Email" type="email" required autofocus autocomplete="username" />
+        <x-input name="username" label="Username" required autofocus autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" />
         <x-input name="password" label="Kata sandi" type="password" required autocomplete="current-password" />
 
         <label class="check">
-            <input type="checkbox" name="remember" value="1" @checked(old('remember'))>
-            <span>Ingat saya di PC ini</span>
+            <input type="checkbox" name="remember" value="1" @checked(old('remember', true))>
+            <span>Ingat saya di perangkat ini</span>
         </label>
 
         <button type="submit" class="btn btn--primary btn--block btn--lg">Masuk</button>

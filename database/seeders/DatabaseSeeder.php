@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\EmployeeType;
 use App\Enums\UserRole;
 use App\Models\User;
 use App\Services\NationalHolidaySync;
@@ -50,19 +51,23 @@ class DatabaseSeeder extends Seeder
             return;
         }
 
-        $email = env('ADMIN_EMAIL', 'admin@sekolah.test');
+        $username = mb_strtolower(env('ADMIN_USERNAME', 'admin'));
         $password = env('ADMIN_PASSWORD') ?: ($defaultPassword ?? Str::password(12, symbols: false));
 
         User::create([
-            'name' => 'Administrator',
-            'email' => $email,
+            'name' => 'Operator Sekolah',
+            'username' => $username,
             'password' => $password,
             'role' => UserRole::Admin,
+            'employee_type' => EmployeeType::Tendik,
+            'position' => 'Operator Sekolah',
+            // Akun pengelola: tidak dihitung kehadirannya (bisa diubah di data guru & staf).
+            'must_attend' => false,
         ]);
 
         $command?->getOutput()->writeln('');
         $command?->info('Akun admin dibuat'.($defaultPassword ? ':' : ' — catat dan segera ganti kata sandinya:'));
-        $command?->line("  Email      : {$email}");
+        $command?->line("  Username   : {$username}");
         $command?->line("  Kata sandi : {$password}");
         $command?->getOutput()->writeln('');
     }

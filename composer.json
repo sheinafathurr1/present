@@ -1,14 +1,13 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "sekolah/presensi-rfid",
+    "name": "sekolah/presensi-guru-staf",
     "type": "project",
-    "description": "Aplikasi presensi siswa berbasis kartu RFID dengan dashboard Laravel.",
+    "description": "Aplikasi presensi guru & staf dari HP dengan lokasi GPS, dashboard Laravel.",
     "keywords": [
         "laravel",
         "presensi",
-        "rfid",
-        "sekolah",
-        "aksesibilitas"
+        "gps",
+        "sekolah"
     ],
     "license": "MIT",
     "require": {
@@ -42,8 +41,7 @@
             "composer install",
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
             "@php artisan key:generate",
-            "@php artisan migrate --force --seed",
-            "@php artisan storage:link"
+            "@php artisan migrate --force --seed"
         ],
         "dev": [
             "Composer\\Config::disableProcessTimeout",
