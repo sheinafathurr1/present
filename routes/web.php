@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeImportController;
+use App\Http\Controllers\ExportController;
 use App\Http\Controllers\HistoryController;
 use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\LeaveRequestController;
@@ -32,6 +33,7 @@ Route::middleware('auth')->group(function () {
     Route::post('presensi/pulang', [PresenceController::class, 'checkOut'])->middleware('throttle:presence')->name('presence.check-out');
 
     Route::get('riwayat', [HistoryController::class, 'index'])->name('history.index');
+    Route::get('riwayat/unduh', [ExportController::class, 'own'])->name('history.export');
 
     Route::get('izin', [LeaveRequestController::class, 'index'])->name('leaves.index');
     Route::get('izin/ajukan', [LeaveRequestController::class, 'create'])->name('leaves.create');
@@ -76,6 +78,9 @@ Route::middleware('auth')->group(function () {
         Route::get('rekap/unduh', [ReportController::class, 'export'])->name('reports.export');
 
         Route::get('pengajuan', [LeaveRequestController::class, 'monitor'])->name('leaves.monitor');
+
+        Route::get('ekspor', [ExportController::class, 'create'])->name('exports.create');
+        Route::get('ekspor/unduh', [ExportController::class, 'download'])->name('exports.download');
 
         Route::get('pegawai', [EmployeeController::class, 'index'])->name('employees.index');
         Route::get('pegawai/{user}', [EmployeeController::class, 'show'])->name('employees.show');

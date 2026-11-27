@@ -29,6 +29,16 @@
     </section>
 @endif
 
+<details class="card disclosure" @if ($errors->hasAny(['dari', 'sampai', 'format'])) open @endif>
+    <summary><x-icon name="download" :size="18" /> Unduh riwayat (Excel/CSV)</summary>
+    <form method="GET" action="{{ route('history.export') }}" class="disclosure__body" novalidate>
+        <p class="hint">Mis. untuk laporan kehadiran atau berkas tunjangan. Berisi setiap tanggal, jam masuk & pulang, keterlambatan, dan izin.</p>
+        @include('partials.date-range', ['idPrefix' => 'riwayat'])
+        @include('partials.export-format')
+        <button type="submit" class="btn btn--primary"><x-icon name="download" :size="18" /> Unduh</button>
+    </form>
+</details>
+
 <section class="card" aria-labelledby="hari-hari">
     <h2 id="hari-hari" class="card__title">Per hari</h2>
     @include('partials.day-table')

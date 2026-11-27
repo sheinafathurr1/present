@@ -18,6 +18,11 @@
             <h2 id="langkah-1" class="card__title">Siapkan file</h2>
             <p>Unduh template, isi satu baris untuk setiap guru/staf, lalu simpan. Hanya kolom <strong>nama</strong> yang wajib;
                 username & kata sandi yang kosong dibuat otomatis.</p>
+            <ul class="guide-list">
+                <li>Template Excel sudah berisi <strong>petunjuk di atas setiap kolom</strong>, penjelasan saat kursor diarahkan ke judul kolom, dan lembar <em>Petunjuk</em> berisi contoh.</li>
+                <li>Isi mulai tepat di bawah judul kolom yang berwarna biru. Baris petunjuk di atasnya boleh dibiarkan.</li>
+                <li>Pakai template <strong>Excel</strong> bila ada NIP: kolomnya sudah berformat Teks sehingga 18 digitnya tidak berubah.</li>
+            </ul>
             <div class="actions">
                 <a href="{{ route('employees.import.template') }}" class="btn btn--secondary"><x-icon name="sheet" :size="18" /> Template Excel (.xlsx)</a>
                 <a href="{{ route('employees.import.template', ['format' => 'csv']) }}" class="btn btn--ghost"><x-icon name="download" :size="18" /> Template CSV</a>
@@ -46,13 +51,14 @@
     <section class="card" aria-labelledby="kolom">
         <h2 id="kolom" class="card__title">Kolom yang dikenali</h2>
         <div class="table-wrap">
-            <table class="table table--stack">
-                <thead><tr><th scope="col">Kolom</th><th scope="col">Keterangan</th><th scope="col">Nama lain yang juga dikenali</th></tr></thead>
+            <table class="table table--stack table--columns">
+                <thead><tr><th scope="col">Kolom</th><th scope="col">Keterangan</th><th scope="col">Contoh isian</th><th scope="col">Nama lain yang juga dikenali</th></tr></thead>
                 <tbody>
-                @foreach ($columns as [$title, $description, $aliases])
+                @foreach ($columns as $key => [$title, $description, $aliases, , $example])
                     <tr>
-                        <th scope="row"><code>{{ $title }}</code></th>
+                        <th scope="row"><code>{{ $title }}</code>@if ($key === 'name') <span class="badge badge--danger">Wajib</span>@endif</th>
                         <td data-label="Keterangan">{{ $description }}</td>
+                        <td data-label="Contoh"><code>{{ $example }}</code></td>
                         <td data-label="Nama lain" class="muted small">{{ implode(', ', $aliases) }}</td>
                     </tr>
                 @endforeach

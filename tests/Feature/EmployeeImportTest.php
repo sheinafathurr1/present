@@ -75,26 +75,47 @@ class EmployeeImportTest extends TestCase
         $this->get('/pegawai')->assertSee('Impor Excel');
 
         $response = $this->get('/pegawai/impor/template')->assertOk()->assertDownload('template-impor-guru-staf.xlsx');
+        $path = $response->baseResponse->getFile()->getPathname();
         $reader = new Reader;
-        $reader->open($response->baseResponse->getFile()->getPathname());
+        $reader->open($path);
         $sheets = [];
         foreach ($reader->getSheetIterator() as $sheet) {
             foreach ($sheet->getRowIterator() as $row) {
-                $sheets[$sheet->getName()] = $row->toArray();
-                break;
+                $sheets[$sheet->getName()][] = $row->toArray();
+                if (count($sheets[$sheet->getName()]) === 4) {
+                    break;
+                }
             }
         }
         $reader->close();
 
         $this->assertSame(['Data guru & staf', 'Petunjuk'], array_keys($sheets));
-        $this->assertSame(explode(';', self::HEADER), $sheets['Data guru & staf']);
+        [$guide, , $hints, $header] = $sheets['Data guru & staf'];
+        $this->assertStringStartsWith('CARA MENGISI', $guide[0]);
+        $this->assertSame('WAJIB diisi. Nama lengkap + gelar', $hints[0]);
+        $this->assertSame('Isi: guru atau tendik', $hints[3]);
+        $this->assertSame(explode(';', self::HEADER), $header);
 
-        // Template yang belum diisi: baris kosong berformat Teks tidak dianggap data.
-        $this->upload(new UploadedFile($response->baseResponse->getFile()->getPathname(), 'template.xlsx', null, null, true))
+        // Judul kolom punya catatan (muncul saat kursor diarahkan ke judul).
+        $zip = new \ZipArchive;
+        $zip->open($path);
+        $comments = $zip->getFromName('xl/comments1.xml');
+        $zip->close();
+        $this->assertStringContainsString('Contoh: 198001012005012001', (string) $comments);
+
+        // Template yang belum diisi: baris petunjuk & baris kosong berformat Teks tidak dianggap data.
+        $this->upload(new UploadedFile($path, 'template.xlsx', null, null, true))
             ->assertSessionHas('error', 'Tidak ada data di bawah baris judul kolom.');
 
         $csv = $this->get('/pegawai/impor/template?format=csv')->assertDownload('template-impor-guru-staf.csv')->streamedContent();
-        $this->assertSame("\xEF\xBB\xBF".self::HEADER, trim($csv));
+        $lines = explode("\n", trim(ltrim($csv, "\xEF\xBB\xBF")));
+        $this->assertCount(4, $lines);
+        $this->assertStringStartsWith('"CARA MENGISI', $lines[0]);
+        $this->assertStringContainsString('Isi: guru atau tendik', $lines[2]);
+        $this->assertSame(self::HEADER, $lines[3]);
+
+        // CSV template yang diisi di bawah judul kolom bisa langsung diimpor.
+        $this->upload($this->csv($csv."Ani Lestari, S.Pd.;;;guru;Guru Kelas 2;;;;;;\n"))->assertOk()->assertSee('ani.lestari')->assertSee('Simpan 1 akun');
     }
 
     public function test_csv_import_creates_accounts_with_generated_credentials(): void

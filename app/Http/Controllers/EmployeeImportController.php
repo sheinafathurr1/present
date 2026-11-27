@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Exceptions\ImportException;
 use App\Services\EmployeeImporter;
+use App\Support\Spreadsheet;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -11,7 +12,10 @@ use Illuminate\Support\Str;
 use Illuminate\View\View;
 use OpenSpout\Common\Entity\Cell\EmptyCell;
 use OpenSpout\Common\Entity\Cell\StringCell;
+use OpenSpout\Common\Entity\Comment\Comment;
+use OpenSpout\Common\Entity\Comment\TextRun;
 use OpenSpout\Common\Entity\Row;
+use OpenSpout\Common\Entity\Style\CellVerticalAlignment;
 use OpenSpout\Common\Entity\Style\Style;
 use OpenSpout\Writer\XLSX\Entity\SheetView;
 use OpenSpout\Writer\XLSX\Writer;
@@ -138,30 +142,56 @@ class EmployeeImportController extends Controller
         }
     }
 
+    /** Langkah singkat yang ditulis di atas baris judul kolom (Excel & CSV). */
+    private const GUIDE = [
+        'CARA MENGISI: satu baris untuk setiap guru/staf, mulai tepat di bawah baris judul kolom (baris biru). Jangan mengubah judul kolom.',
+        'Hanya kolom "nama" yang wajib. Username & kata sandi yang kosong dibuat otomatis dan ditampilkan setelah impor. Baris petunjuk ini boleh dibiarkan.',
+    ];
+
     private function xlsxTemplate(): BinaryFileResponse
     {
         $columns = EmployeeImporter::COLUMNS;
+        $keys = array_keys($columns);
         $path = tempnam(sys_get_temp_dir(), 'tpl').'.xlsx';
 
+        $title = new Style(fontBold: true, fontSize: 14);
+        $guide = new Style(fontColor: '344054');
+        $hint = new Style(fontItalic: true, fontSize: 10, fontColor: '5A6372', backgroundColor: 'EEF2F8', shouldWrapText: true, cellVerticalAlignment: CellVerticalAlignment::TOP);
+        $hintRequired = new Style(fontItalic: true, fontBold: true, fontSize: 10, fontColor: 'B42318', backgroundColor: 'FDECEA', shouldWrapText: true, cellVerticalAlignment: CellVerticalAlignment::TOP);
         $header = new Style(fontBold: true, fontColor: 'FFFFFF', backgroundColor: '1F5FBF');
+        $headerRequired = new Style(fontBold: true, fontColor: 'FFFFFF', backgroundColor: '0B3D91');
         $text = new Style(format: '@');
         $bold = new Style(fontBold: true);
-        $wrap = new Style(shouldWrapText: true);
+        $wrap = new Style(shouldWrapText: true, cellVerticalAlignment: CellVerticalAlignment::TOP);
 
         $writer = new Writer;
         $writer->openToFile($path);
 
-        // Lembar 1: tempat mengisi data.
+        // Lembar 1: petunjuk singkat (baris 1–3), judul kolom (baris 4), lalu tempat mengisi data.
         $sheet = $writer->getCurrentSheet();
         $sheet->setName('Data guru & staf');
-        $sheet->setSheetView(new SheetView(freezeRow: 2));
-        $widths = ['name' => 34, 'username' => 18, 'password' => 14, 'employee_type' => 10, 'position' => 26, 'nip' => 22, 'phone' => 16, 'role' => 12, 'must_attend' => 15, 'work_start' => 11, 'work_end' => 11];
-        $index = 1;
-        foreach (array_keys($columns) as $key) {
-            $sheet->setColumnWidth($widths[$key], $index++);
+        $sheet->setSheetView(new SheetView(freezeRow: 5));
+        $widths = ['name' => 34, 'username' => 20, 'password' => 18, 'employee_type' => 14, 'position' => 24, 'nip' => 22, 'phone' => 16, 'role' => 20, 'must_attend' => 16, 'work_start' => 17, 'work_end' => 17];
+        foreach ($keys as $index => $key) {
+            $sheet->setColumnWidth($widths[$key], $index + 1);
         }
 
-        $writer->addRow(Row::fromValuesWithStyle(array_column($columns, 0), $header));
+        $writer->addRow(Spreadsheet::row([self::GUIDE[0]], $title));
+        $writer->addRow(Spreadsheet::row([self::GUIDE[1].' Arahkan kursor ke judul kolom untuk penjelasan; contoh ada di lembar "Petunjuk".'], $guide));
+        $writer->addRow(Spreadsheet::row(
+            array_column($columns, 3),
+            $hint,
+            [0 => $hintRequired],
+            height: 42,
+        ));
+        $writer->addRow(new Row(array_map(fn (string $key) => new StringCell(
+            $columns[$key][0],
+            $key === 'name' ? $headerRequired : $header,
+            new Comment(width: '220pt', height: '80pt', textRuns: [
+                new TextRun($columns[$key][0], bold: true),
+                new TextRun("\n".$columns[$key][1]."\nContoh: ".$columns[$key][4]),
+            ]),
+        ), $keys)));
 
         // Baris kosong yang sudah berformat Teks di kolom NIP, HP, dsb. OpenSpout tidak menulis
         // baris yang semua selnya kosong, jadi kolom nama diberi teks kosong.
@@ -170,38 +200,41 @@ class EmployeeImportController extends Controller
                 $key === 'name' => new StringCell('', $text),
                 in_array($key, self::TEXT_COLUMNS, true) => new EmptyCell(null, $text),
                 default => new EmptyCell(null, null),
-            }, array_keys($columns))));
+            }, $keys)));
         }
 
-        // Lembar 2: petunjuk & contoh.
-        $guide = $writer->addNewSheetAndMakeItCurrent();
-        $guide->setName('Petunjuk');
-        $guide->setColumnWidth(20, 1);
-        $guide->setColumnWidth(90, 2);
-        $writer->addRow(Row::fromValuesWithStyle(['Cara mengisi'], new Style(fontBold: true, fontSize: 14)));
+        // Lembar 2: petunjuk lengkap & contoh.
+        $guideSheet = $writer->addNewSheetAndMakeItCurrent();
+        $guideSheet->setName('Petunjuk');
+        foreach ([18, 10, 70, 30] as $index => $width) {
+            $guideSheet->setColumnWidth($width, $index + 1);
+        }
+        $writer->addRow(Spreadsheet::row(['Cara mengisi template impor guru & staf'], $title));
         foreach ([
-            '1. Isi satu baris untuk setiap guru/staf di lembar "Data guru & staf". Jangan mengubah baris judul kolom.',
-            '2. Hanya kolom "nama" yang wajib. Username & kata sandi yang kosong dibuat otomatis dan ditampilkan setelah impor.',
-            '3. Kolom NIP dan no_hp sudah berformat Teks. Bila menyalin dari file lain, tempel dengan "Paste Values" agar formatnya tetap Teks.',
-            '4. Simpan file (.xlsx), lalu unggah di menu Guru & Staf → Impor Excel. Data diperiksa dan ditampilkan dulu sebelum disimpan.',
-            '5. Mengimpor ulang dengan username/NIP yang sama memperbarui data akun tersebut; sel kosong tidak mengubah datanya.',
+            '1. Buka lembar "Data guru & staf". Isi satu baris untuk setiap guru/staf, mulai baris 5 (tepat di bawah judul kolom yang berwarna biru).',
+            '2. Hanya kolom "nama" yang wajib. Kolom lain boleh dikosongkan.',
+            '3. Username & kata sandi yang kosong dibuat otomatis. Setelah impor, daftarnya ditampilkan sekali dan bisa dicetak sebagai kartu akun.',
+            '4. Kolom username, kata_sandi, nip, no_hp, jam_masuk, dan jam_pulang sudah berformat Teks agar NIP 18 digit dan angka 0 di depan nomor HP tidak berubah.',
+            '   Bila menyalin dari file lain, tempel dengan klik kanan → "Paste Values" (Tempel Nilai) agar formatnya tetap Teks.',
+            '5. Simpan file (.xlsx), lalu unggah di menu Guru & Staf → Impor Excel. Data diperiksa dan ditampilkan dulu; belum ada yang tersimpan sebelum Anda menekan Simpan.',
+            '6. Mengimpor ulang file yang sama aman: akun dicocokkan lewat username, NIP, atau nama, lalu diperbarui (sel kosong tidak menghapus data).',
         ] as $step) {
-            $writer->addRow(Row::fromValues([$step]));
+            $writer->addRow(Spreadsheet::row([$step]));
         }
-        $writer->addRow(Row::fromValues(['']));
-        $writer->addRow(Row::fromValuesWithStyle(['Kolom', 'Keterangan'], $bold));
-        foreach ($columns as [$title, $description]) {
-            $writer->addRow(Row::fromValuesWithStyles([$title, $description], [1 => $wrap]));
+        $writer->addRow(Spreadsheet::row(['']));
+        $writer->addRow(Spreadsheet::row(['Kolom', 'Wajib?', 'Keterangan', 'Contoh isian'], $bold));
+        foreach ($columns as $key => [$columnTitle, $description, , , $example]) {
+            $writer->addRow(Spreadsheet::row([$columnTitle, $key === 'name' ? 'Wajib' : 'Boleh kosong', $description, $example], styles: [2 => $wrap, 3 => $text]));
         }
-        $writer->addRow(Row::fromValues(['']));
-        $writer->addRow(Row::fromValuesWithStyle(['Contoh (jangan disalin ke lembar data)'], $bold));
-        $writer->addRow(Row::fromValuesWithStyle(array_column($columns, 0), $bold));
+        $writer->addRow(Spreadsheet::row(['']));
+        $writer->addRow(Spreadsheet::row(['Contoh baris lengkap (jangan disalin ke lembar data)'], $bold));
+        $writer->addRow(Spreadsheet::row(array_column($columns, 0), $bold));
         foreach ([
             ['Drs. Bambang Supriyadi, M.Pd.', 'kepsek', '', 'guru', 'Kepala Sekolah', '196805121994031004', '081211112222', 'pimpinan', 'ya', '', ''],
             ['Siti Aminah, S.Pd.', '', '', 'guru', 'Guru Kelas 1', '198001012005012001', '081234567890', '', '', '', ''],
             ['Joko Susilo', '', 'rahasia123', 'tendik', 'Staf Tata Usaha', '', '081298765432', '', 'ya', '07:30', '15:30'],
         ] as $example) {
-            $writer->addRow(Row::fromValuesWithStyle($example, $text));
+            $writer->addRow(Spreadsheet::row($example, $text));
         }
 
         $writer->close();
@@ -214,9 +247,13 @@ class EmployeeImportController extends Controller
     private function csvTemplate(): StreamedResponse
     {
         return response()->streamDownload(function () {
+            $columns = EmployeeImporter::COLUMNS;
             $out = fopen('php://output', 'w');
             fwrite($out, "\xEF\xBB\xBF");
-            fputcsv($out, array_column(EmployeeImporter::COLUMNS, 0), ';', '"', '');
+            fputcsv($out, [self::GUIDE[0]], ';', '"', '');
+            fputcsv($out, [self::GUIDE[1].' Untuk NIP 18 digit lebih aman memakai template Excel; bila mengisi CSV ini di Excel, ubah format kolom nip & no_hp menjadi Teks sebelum mengetik.'], ';', '"', '');
+            fputcsv($out, array_column($columns, 3), ';', '"', '');
+            fputcsv($out, array_column($columns, 0), ';', '"', '');
             fclose($out);
         }, 'template-impor-guru-staf.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
     }

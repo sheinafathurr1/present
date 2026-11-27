@@ -13,7 +13,8 @@
         <p class="lead">{{ $report['school_day_count'] }} hari sekolah di {{ $month->translatedFormat('F Y') }} · {{ count($report['rows']) }} orang</p>
     </div>
     <div class="actions no-print">
-        <a class="btn btn--secondary" href="{{ route('reports.export', $query) }}"><x-icon name="download" :size="18" /> Unduh Excel (CSV)</a>
+        <a class="btn btn--secondary" href="{{ route('reports.export', $query) }}"><x-icon name="download" :size="18" /> Unduh bulan ini (CSV)</a>
+        <a class="btn btn--secondary" href="{{ route('exports.create', array_filter(['jenis' => $type?->value])) }}"><x-icon name="calendar" :size="18" /> Ekspor rentang tanggal</a>
         <button type="button" class="btn btn--secondary" data-print><x-icon name="printer" :size="18" /> Cetak</button>
     </div>
 </div>

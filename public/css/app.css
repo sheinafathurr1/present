@@ -693,7 +693,42 @@ kbd { padding: 0 .3rem; border: 1px solid var(--border-strong); border-radius: 4
 .import-confirm p { margin: 0; }
 .table--import tbody tr.has-error { background: color-mix(in srgb, var(--alpa-soft) 70%, transparent); }
 .table--import td .muted, .table--import td .small { display: block; }
+.guide-list { margin: 0 0 1rem; padding-left: 1.2rem; color: var(--text); font-size: .92rem; }
+.guide-list li { margin-bottom: .3rem; }
 .error-list { margin: 0; padding-left: 1.1rem; color: var(--alpa); font-size: .88rem; font-weight: 600; }
+
+/* ---------- Ekspor ---------- */
+
+.date-range { margin: 0 0 .5rem; padding: 0; border: 0; }
+.date-range legend { margin-bottom: .5rem; font-size: .92rem; font-weight: 600; }
+.date-range__presets { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: .85rem; }
+.chip-btn {
+    min-height: 36px;
+    padding: .3rem .8rem;
+    border: 1px solid var(--border-strong); border-radius: 999px;
+    background: var(--surface); color: var(--text);
+    font: inherit; font-size: .875rem; font-weight: 600;
+    cursor: pointer;
+}
+.chip-btn:hover { border-color: var(--accent); }
+.chip-btn[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.export-note { margin: 0 0 1.25rem; }
+.export-note .hint { display: flex; gap: .4rem; align-items: flex-start; }
+.export-note .icon { margin-top: .15rem; }
+
+.card.disclosure { padding: 0; }
+.disclosure > summary {
+    display: flex; align-items: center; gap: .5rem;
+    padding: 1rem 1.25rem;
+    font-weight: 700;
+    cursor: pointer;
+    list-style: none;
+}
+.disclosure > summary::-webkit-details-marker { display: none; }
+.disclosure > summary::after { content: ""; width: .5rem; height: .5rem; margin-left: auto; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); transition: transform .15s ease; }
+.disclosure[open] > summary::after { transform: rotate(-135deg); }
+.disclosure > summary .icon { color: var(--accent); }
+.disclosure__body { padding: 0 1.25rem 1.25rem; }
 
 /* ---------- Saringan & navigasi bulan ---------- */
 
@@ -819,6 +854,10 @@ kbd { padding: 0 .3rem; border: 1px solid var(--border-strong); border-radius: 4
     .table--import td.num::before { display: inline; content: attr(data-label) " "; font-size: inherit; letter-spacing: 0; text-transform: none; }
     .table--import td[data-label="Hasil"]::before { display: none; }
     .table--import td:not(:has(*)) { display: none; }
+
+    /* Daftar kolom impor: keterangan & contoh saja; nama lain disembunyikan. */
+    .table--columns td[data-label="Keterangan"]::before, .table--columns td[data-label="Nama lain"] { display: none; }
+    .table--columns td[data-label="Contoh"]::before { display: inline; content: "Contoh: "; font-size: .85rem; font-weight: 600; letter-spacing: 0; text-transform: none; }
 }
 
 @media (max-width: 600px) {

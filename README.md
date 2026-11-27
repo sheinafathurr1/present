@@ -49,7 +49,8 @@ kehadirannya bisa dimatikan pilihannya.
 - Tombol presensi hanya aktif di dalam area. Pulang sebelum jam pulang meminta
   konfirmasi dan dicatat sebagai **pulang awal**.
 - **Riwayat** per bulan: jumlah hadir/terlambat/izin/sakit/cuti/dinas luar/alpa,
-  total menit terlambat, berapa kali pulang awal, dan rincian per hari.
+  total menit terlambat, berapa kali pulang awal, dan rincian per hari. Riwayat sendiri bisa
+  **diunduh** (Excel/CSV) untuk rentang tanggal tertentu, mis. untuk berkas tunjangan.
 - **Izin & cuti**: pilih jenis, tanggal (satu hari atau rentang), keterangan, dan
   lampiran opsional (foto surat dokter/surat tugas; foto dari kamera diperkecil otomatis).
   Hari libur dan akhir pekan dilewati otomatis. Pengajuan yang belum lewat bisa
@@ -62,7 +63,10 @@ kehadirannya bisa dimatikan pilihannya.
   masuk/pulang, jarak dari sekolah, dan alasan izin. Bisa disaring guru / staf tendik.
   Halaman memperbarui diri tiap 2 menit.
 - **Rekap bulanan**: tabel orang × tanggal (kode H/T/I/S/C/D/A), jumlah per status,
-  total menit terlambat, pulang awal, dan persentase kehadiran. **Unduh Excel (CSV)** dan **Cetak**.
+  total menit terlambat, pulang awal, dan persentase kehadiran. **Unduh CSV** dan **Cetak**.
+- **Ekspor data dengan rentang tanggal** (Excel atau CSV): per guru/staf atau semua orang,
+  untuk rentang pilihan sendiri (mis. 1 Juli – 31 Desember) atau pilihan cepat
+  *Bulan ini*, *Bulan lalu*, *3 bulan terakhir*, *Semester ini*, *Tahun ini*.
 - **Pengajuan izin**: semua pengajuan per bulan, bisa disaring per jenis/orang, dengan lampiran.
 - **Detail guru/staf**: data akun, ringkasan bulan, dan rincian per hari termasuk
   jarak & akurasi GPS saat presensi.
@@ -177,8 +181,11 @@ Di hosting, arahkan *document root* domain ke folder **`public`**.
 
 Menu **Guru & Staf → Impor Excel**:
 
-1. Unduh **template Excel** (atau CSV). Isi satu baris per orang di lembar *Data guru & staf*;
-   lembar *Petunjuk* menjelaskan setiap kolom. Hanya kolom `nama` yang wajib.
+1. Unduh **template Excel** (atau CSV). Isi satu baris per orang, mulai tepat di bawah judul
+   kolom yang berwarna biru. Petunjuk pengisian ada di dalam template: langkah singkat di
+   baris paling atas, petunjuk di atas setiap kolom (mis. *Isi: guru atau tendik*), catatan
+   yang muncul saat kursor diarahkan ke judul kolom, dan lembar *Petunjuk* berisi contoh.
+   Hanya kolom `nama` yang wajib; baris petunjuk boleh dibiarkan saat diunggah.
 2. Unggah file. Semua baris **diperiksa dan ditampilkan dulu** (akun baru, diperbarui, atau
    yang perlu diperbaiki beserta nomor barisnya). Bila ada satu saja yang salah, tidak ada
    yang disimpan — perbaiki file lalu unggah ulang.
@@ -197,6 +204,24 @@ Catatan:
 - **NIP 18 digit** harus berformat Teks di Excel. Template sudah menyiapkannya; bila NIP terlanjur
   berformat Angka (tampil seperti `1,98E+17`), digit terakhirnya sudah berubah dan baris itu ditolak.
 - Format `.xls` lama: buka di Excel lalu simpan sebagai *Excel Workbook (.xlsx)*.
+
+### Ekspor data presensi
+
+Menu **Ekspor Data** (pimpinan & admin), atau tombol **Ekspor data** di halaman detail guru/staf:
+
+- Pilih **satu guru/staf** atau **semua guru & staf** (bisa disaring guru saja / staf tendik saja),
+  lalu **rentang tanggal** dan format **Excel** atau **CSV**. Rentang paling panjang 1 tahun.
+- **Satu orang (Excel)**: identitas & periode, ringkasan (hari sekolah, jumlah per status,
+  tanpa keterangan, total menit terlambat, pulang awal, persentase), rincian **setiap tanggal**
+  (termasuk libur) dengan jam masuk/pulang, keterlambatan, jarak dari sekolah, dan keterangan,
+  serta lembar **Pengajuan izin**.
+- **Semua orang (Excel)**: lembar **Ringkasan** satu baris per orang (cocok untuk bendahara),
+  dan **Rincian harian**. Guru/staf yang sudah nonaktif tetap ikut bila punya data di rentang itu.
+- CSV berisi satu tabel (rincian per hari untuk satu orang, ringkasan untuk semua orang).
+- Teks yang diketik pengguna (nama, alasan izin) selalu ditulis sebagai teks, sehingga isian
+  berawalan `=` tidak pernah dijalankan Excel sebagai rumus.
+
+Guru/staf bisa mengunduh riwayatnya sendiri dari **Riwayat Saya → Unduh riwayat**.
 
 ### Data uji coba
 
@@ -301,6 +326,7 @@ Struktur penting:
 | `app/Support/DailySummary.php`, `MonthlyReport.php` | Ringkasan hari ini & rekap bulanan |
 | `app/Services/NationalHolidaySync.php` | Pengambilan libur nasional |
 | `app/Services/EmployeeImporter.php` | Membaca, memeriksa, dan menyimpan impor guru & staf (Excel/CSV) |
+| `app/Services/AttendanceExporter.php` | Ekspor presensi per orang / semua orang untuk rentang tanggal |
 | `public/js/presence.js` | Pembacaan lokasi GPS & tombol presensi di HP |
 | `public/js/app.js`, `public/css/app.css` | Skrip & tampilan umum |
 

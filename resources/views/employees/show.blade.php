@@ -16,11 +16,12 @@
             @unless ($employee->is_active) · <span class="badge badge--muted">Nonaktif</span>@endunless
         </p>
     </div>
-    @if ($isAdmin)
-        <div class="actions">
+    <div class="actions">
+        <a href="{{ route('exports.create', ['pegawai' => $employee->id]) }}" class="btn btn--secondary"><x-icon name="download" :size="18" /> Ekspor data</a>
+        @if ($isAdmin)
             <a href="{{ route('employees.edit', $employee) }}" class="btn btn--secondary"><x-icon name="edit" :size="18" /> Ubah data</a>
-        </div>
-    @endif
+        @endif
+    </div>
 </div>
 
 <div class="grid-2 grid-2--sidebar">

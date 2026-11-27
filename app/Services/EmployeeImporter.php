@@ -31,20 +31,31 @@ class EmployeeImporter
     public const MAX_ROWS = 500;
 
     /**
-     * Kolom yang dikenali: kunci => [judul di template, keterangan, nama lain].
+     * Kolom yang dikenali: kunci => [judul di template, keterangan, nama lain, petunjuk singkat, contoh].
      */
     public const COLUMNS = [
-        'name' => ['nama', 'Wajib. Nama lengkap beserta gelar.', ['nama lengkap', 'nama pegawai', 'nama ptk', 'nama guru']],
-        'username' => ['username', 'Untuk login: huruf kecil tanpa spasi, mis. siti.aminah. Kosongkan untuk dibuat otomatis dari nama.', ['user', 'nama pengguna', 'user name']],
-        'password' => ['kata_sandi', 'Minimal 8 karakter. Kosongkan untuk dibuat otomatis (ditampilkan setelah impor).', ['kata sandi', 'password', 'sandi']],
-        'employee_type' => ['jenis', 'guru atau tendik. Kosong: ditebak dari jabatan (mengandung "guru"/"kepala sekolah" = guru).', ['jenis pegawai', 'jenis ptk', 'kategori', 'tipe']],
-        'position' => ['jabatan', 'Mis. Guru Kelas 3, Guru PJOK, Staf Tata Usaha, Penjaga Sekolah.', ['tugas', 'jabatan ptk']],
-        'nip' => ['nip', 'Opsional. Ketik sebagai teks agar 18 digitnya tidak berubah.', ['no nip', 'nomor nip']],
-        'phone' => ['no_hp', 'Opsional, mis. 081234567890.', ['hp', 'no hp', 'nomor hp', 'telepon', 'no telepon', 'no telp', 'nomor telepon', 'whatsapp', 'wa', 'no wa']],
-        'role' => ['peran', 'pegawai (bawaan), pimpinan (kepala sekolah, wakil, bendahara), atau admin.', ['role', 'hak akses']],
-        'must_attend' => ['wajib_presensi', 'ya (bawaan) atau tidak.', ['wajib presensi', 'presensi']],
-        'work_start' => ['jam_masuk', 'Opsional, jam masuk khusus orang ini, mis. 07:30. Kosong: jadwal umum.', ['jam masuk']],
-        'work_end' => ['jam_pulang', 'Opsional, jam pulang khusus, mis. 15:30. Isi bersama jam_masuk.', ['jam pulang']],
+        'name' => ['nama', 'Wajib. Nama lengkap beserta gelar.', ['nama lengkap', 'nama pegawai', 'nama ptk', 'nama guru'],
+            'WAJIB diisi. Nama lengkap + gelar', 'Siti Aminah, S.Pd.'],
+        'username' => ['username', 'Untuk login: huruf kecil tanpa spasi, mis. siti.aminah. Kosongkan untuk dibuat otomatis dari nama.', ['user', 'nama pengguna', 'user name'],
+            'Boleh kosong (dibuat otomatis). Huruf kecil, tanpa spasi', 'siti.aminah'],
+        'password' => ['kata_sandi', 'Minimal 8 karakter. Kosongkan untuk dibuat otomatis (ditampilkan setelah impor).', ['kata sandi', 'password', 'sandi'],
+            'Boleh kosong (dibuat otomatis). Min. 8 karakter', 'rahasia123'],
+        'employee_type' => ['jenis', 'guru atau tendik. Kosong: ditebak dari jabatan (mengandung "guru"/"kepala sekolah" = guru).', ['jenis pegawai', 'jenis ptk', 'kategori', 'tipe'],
+            'Isi: guru atau tendik', 'guru'],
+        'position' => ['jabatan', 'Mis. Guru Kelas 3, Guru PJOK, Staf Tata Usaha, Penjaga Sekolah.', ['tugas', 'jabatan ptk'],
+            'Mis. Guru Kelas 3, Staf Tata Usaha', 'Guru Kelas 1'],
+        'nip' => ['nip', 'Opsional. Ketik sebagai teks agar 18 digitnya tidak berubah.', ['no nip', 'nomor nip'],
+            'Boleh kosong. 18 digit tanpa spasi', '198001012005012001'],
+        'phone' => ['no_hp', 'Opsional, mis. 081234567890.', ['hp', 'no hp', 'nomor hp', 'telepon', 'no telepon', 'no telp', 'nomor telepon', 'whatsapp', 'wa', 'no wa'],
+            'Boleh kosong. Diawali 08', '081234567890'],
+        'role' => ['peran', 'pegawai (bawaan), pimpinan (kepala sekolah, wakil, bendahara), atau admin.', ['role', 'hak akses'],
+            'Isi: pegawai, pimpinan, atau admin. Kosong = pegawai', 'pegawai'],
+        'must_attend' => ['wajib_presensi', 'ya (bawaan) atau tidak.', ['wajib presensi', 'presensi'],
+            'Isi: ya atau tidak. Kosong = ya', 'ya'],
+        'work_start' => ['jam_masuk', 'Opsional, jam masuk khusus orang ini, mis. 07:30. Kosong: jadwal umum.', ['jam masuk'],
+            'Boleh kosong (jadwal umum). Mis. 07:30', '07:30'],
+        'work_end' => ['jam_pulang', 'Opsional, jam pulang khusus, mis. 15:30. Isi bersama jam_masuk.', ['jam pulang'],
+            'Boleh kosong. Isi bersama jam_masuk', '15:30'],
     ];
 
     /** Kolom yang diperiksa agar angka panjang tidak rusak karena format Angka di Excel. */
@@ -149,10 +160,17 @@ class EmployeeImporter
             $content = mb_convert_encoding($content, 'UTF-8', 'Windows-1252');
         }
 
-        $firstLine = strtok($content, "\r\n") ?: '';
-        $counts = [';' => substr_count($firstLine, ';'), ',' => substr_count($firstLine, ','), "\t" => substr_count($firstLine, "\t")];
-        arsort($counts);
-        $delimiter = array_key_first($counts);
+        // Pemisah kolom: yang menghasilkan kolom terbanyak di baris-baris awal (baris petunjuk
+        // di atas judul kolom boleh mengandung koma, jadi baris pertama saja tidak cukup).
+        $sample = array_slice(preg_split('/\r\n|\n|\r/', $content) ?: [], 0, 15);
+        $delimiter = ';';
+        $most = 0;
+        foreach ([';', ',', "\t"] as $candidate) {
+            $fields = max(array_map(fn (string $line) => count(str_getcsv($line, $candidate, '"', '')), $sample ?: ['']));
+            if ($fields > $most) {
+                [$delimiter, $most] = [$candidate, $fields];
+            }
+        }
 
         $handle = fopen('php://temp', 'r+');
         fwrite($handle, $content);

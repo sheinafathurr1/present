@@ -20,6 +20,7 @@
             ['route' => 'reports.monthly', 'match' => 'reports.*', 'icon' => 'chart', 'label' => 'Rekap Bulanan'],
             ['route' => 'leaves.monitor', 'match' => 'leaves.monitor', 'icon' => 'file', 'label' => 'Pengajuan Izin'],
             ['route' => 'employees.index', 'match' => ['employees.*', 'corrections.*'], 'icon' => 'users', 'label' => 'Guru & Staf'],
+            ['route' => 'exports.create', 'match' => 'exports.*', 'icon' => 'download', 'label' => 'Ekspor Data'],
         ];
     }
     $mine = [];

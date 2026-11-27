@@ -6,6 +6,7 @@ use App\Enums\AttendanceStatus;
 use App\Enums\EmployeeType;
 use App\Support\MonthlyReport;
 use App\Support\SchoolSettings;
+use App\Support\Spreadsheet;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -53,7 +54,7 @@ class ReportController extends Controller
 
             foreach ($report['rows'] as $row) {
                 $user = $row['user'];
-                $line = [self::safe($user->name), $user->nip, self::safe($user->position), $user->employee_type->label()];
+                $line = [Spreadsheet::csvSafe($user->name), $user->nip, Spreadsheet::csvSafe($user->position), $user->employee_type->label()];
 
                 foreach ($report['days'] as $day) {
                     $attendance = $row['cells'][$day['date']];
@@ -75,11 +76,5 @@ class ReportController extends Controller
             fputcsv($out, ['Keterangan: H Hadir, T Terlambat, I Izin, S Sakit, C Cuti, D Dinas luar, A Alpa, L Libur, - tidak ada catatan'], ';');
             fclose($out);
         }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
-    }
-
-    /** Teks yang diawali =, +, -, @ dibaca Excel sebagai rumus; beri tanda petik di depannya. */
-    private static function safe(?string $value): ?string
-    {
-        return $value !== null && preg_match('/^[=+\-@\t\r]/', $value) ? "'".$value : $value;
     }
 }

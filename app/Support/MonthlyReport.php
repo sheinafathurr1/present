@@ -27,8 +27,23 @@ class MonthlyReport
      */
     public static function build(CarbonImmutable $month, SchoolSettings $settings, ?EmployeeType $type = null, ?Collection $users = null): array
     {
-        $start = $month->startOfMonth();
-        $end = $month->endOfMonth()->startOfDay();
+        $users ??= User::attending()
+            ->when($type, fn ($query) => $query->where('employee_type', $type))
+            ->orderBy('name')
+            ->get();
+
+        return ['month' => $month->startOfMonth()] + self::period($month->startOfMonth(), $month->endOfMonth()->startOfDay(), $settings, $users);
+    }
+
+    /**
+     * Rekap untuk rentang tanggal bebas (dipakai juga untuk ekspor).
+     *
+     * @param  Collection<int, User>  $users
+     */
+    public static function period(CarbonImmutable $start, CarbonImmutable $end, SchoolSettings $settings, Collection $users): array
+    {
+        $start = $start->startOfDay();
+        $end = $end->startOfDay();
         $today = CarbonImmutable::today();
 
         $holidays = Holiday::off()->whereBetween('date', [$start->toDateString(), $end->toDateString()])->pluck('name', 'date');
@@ -49,14 +64,9 @@ class MonthlyReport
             ];
         }
 
-        $users ??= User::attending()
-            ->when($type, fn ($query) => $query->where('employee_type', $type))
-            ->orderBy('name')
-            ->get();
-
         $attendances = Attendance::whereIn('user_id', $users->pluck('id'))
             ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
-            ->when($users->count() === 1, fn ($query) => $query->with('leaveRequest'))
+            ->with('leaveRequest')
             ->get()
             ->groupBy('user_id');
 
@@ -93,13 +103,13 @@ class MonthlyReport
                 'missing' => $missing,
                 'late_minutes' => (int) $byDate->sum('late_minutes'),
                 'early_count' => $byDate->where('early_minutes', '>', 0)->count(),
+                'early_minutes' => (int) $byDate->sum('early_minutes'),
                 'school_days' => $schoolDaysSoFar,
                 'percentage' => $schoolDaysSoFar > 0 ? (int) round($present / $schoolDaysSoFar * 100) : 0,
             ];
         }
 
         return [
-            'month' => $start,
             'days' => $days,
             'rows' => $rows,
             'school_day_count' => count(array_filter($days, fn (array $day) => $day['school'])),

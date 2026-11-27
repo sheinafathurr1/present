@@ -69,6 +69,47 @@
         });
     });
 
+    /* ---------- Rentang tanggal: pilihan cepat ---------- */
+
+    document.querySelectorAll('[data-date-range]').forEach(function (range) {
+        var from = range.querySelector('input[name="dari"]');
+        var to = range.querySelector('input[name="sampai"]');
+        var chips = range.querySelectorAll('[data-range-from]');
+        var sync = function () {
+            chips.forEach(function (chip) {
+                chip.setAttribute('aria-pressed', chip.dataset.rangeFrom === from.value && chip.dataset.rangeTo === to.value ? 'true' : 'false');
+            });
+            to.min = from.value || '';
+        };
+        chips.forEach(function (chip) {
+            chip.addEventListener('click', function () {
+                from.value = chip.dataset.rangeFrom;
+                to.value = chip.dataset.rangeTo;
+                sync();
+            });
+        });
+        from.addEventListener('change', sync);
+        to.addEventListener('change', sync);
+        sync();
+    });
+
+    // Ekspor: pilihan jenis hanya untuk "semua guru & staf".
+    var exportPerson = document.querySelector('[data-export-person]');
+    if (exportPerson) {
+        var everyone = document.querySelector('[data-for-everyone]');
+        var notePerson = document.querySelector('[data-note-person]');
+        var noteEveryone = document.querySelector('[data-note-everyone]');
+        var toggleExport = function () {
+            var all = exportPerson.value === '';
+            everyone.hidden = !all;
+            everyone.querySelector('select').disabled = !all;
+            notePerson.hidden = all;
+            noteEveryone.hidden = !all;
+        };
+        exportPerson.addEventListener('change', toggleExport);
+        toggleExport();
+    }
+
     var summary = document.querySelector('[data-autofocus]');
     if (summary) summary.focus();
 
