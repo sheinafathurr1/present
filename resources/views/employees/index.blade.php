@@ -11,6 +11,7 @@
     </div>
     @if ($isAdmin)
         <div class="actions">
+            <a href="{{ route('employees.import') }}" class="btn btn--secondary"><x-icon name="upload" :size="18" /> Impor Excel</a>
             <a href="{{ route('employees.create') }}" class="btn btn--primary"><x-icon name="plus" :size="18" /> Tambah</a>
         </div>
     @endif

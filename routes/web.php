@@ -5,6 +5,7 @@ use App\Http\Controllers\AttendanceCorrectionController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\EmployeeImportController;
 use App\Http\Controllers\HistoryController;
 use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\LeaveRequestController;
@@ -43,6 +44,11 @@ Route::middleware('auth')->group(function () {
 
     // Khusus admin: kelola data. Didaftarkan sebelum /pegawai/{user} agar "tambah" tidak dianggap id.
     Route::middleware('role:admin')->group(function () {
+        Route::get('pegawai/impor', [EmployeeImportController::class, 'create'])->name('employees.import');
+        Route::get('pegawai/impor/template', [EmployeeImportController::class, 'template'])->name('employees.import.template');
+        Route::post('pegawai/impor', [EmployeeImportController::class, 'preview'])->name('employees.import.preview');
+        Route::post('pegawai/impor/simpan', [EmployeeImportController::class, 'store'])->name('employees.import.store');
+
         Route::get('pegawai/tambah', [EmployeeController::class, 'create'])->name('employees.create');
         Route::post('pegawai', [EmployeeController::class, 'store'])->name('employees.store');
         Route::get('pegawai/{user}/ubah', [EmployeeController::class, 'edit'])->name('employees.edit');

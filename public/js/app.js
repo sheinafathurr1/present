@@ -47,6 +47,28 @@
         button.addEventListener('click', function () { window.print(); });
     });
 
+    // Unduh isi tabel sebagai CSV (dibuat di browser, tidak lewat server).
+    document.querySelectorAll('[data-download-table]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            var table = document.querySelector(button.dataset.downloadTable);
+            if (!table) return;
+            var cell = function (node) {
+                var text = node.textContent.replace(/\s+/g, ' ').trim();
+                if (/^[=+\-@]/.test(text)) text = "'" + text;  // jangan dibaca sebagai rumus oleh Excel
+                return '"' + text.replace(/"/g, '""') + '"';
+            };
+            var lines = Array.prototype.map.call(table.querySelectorAll('tr'), function (tr) {
+                return Array.prototype.map.call(tr.querySelectorAll('th, td'), cell).join(';');
+            });
+            var link = document.createElement('a');
+            link.href = URL.createObjectURL(new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' }));
+            link.download = button.dataset.filename || 'data.csv';
+            document.body.appendChild(link);
+            link.click();
+            setTimeout(function () { URL.revokeObjectURL(link.href); link.remove(); }, 0);
+        });
+    });
+
     var summary = document.querySelector('[data-autofocus]');
     if (summary) summary.focus();
 

@@ -48,7 +48,8 @@
                 @if ($attendance?->check_out_at)
                     <dd class="slot__meta">
                         @if ($attendance->early_minutes > 0)
-                            <span class="badge badge--warning">Pulang awal {{ \App\Models\Attendance::minutes($attendance->early_minutes) }}</span>
+                            <span class="badge badge--warning">Pulang awal</span>
+                            <span>{{ \App\Models\Attendance::minutes($attendance->early_minutes) }}</span>
                         @else
                             <span class="badge badge--success">Tepat waktu</span>
                         @endif

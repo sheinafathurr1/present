@@ -71,6 +71,8 @@ kehadirannya bisa dimatikan pilihannya.
 - Tambah/ubah/nonaktifkan akun guru & staf (username, kata sandi, peran, jenis guru/tendik,
   jabatan, NIP, nomor HP, jam kerja khusus). Akun yang sudah punya riwayat dinonaktifkan,
   bukan dihapus, agar riwayatnya tetap ada.
+- **Impor dari Excel/CSV**: buat atau perbarui banyak akun sekaligus. Data diperiksa dulu,
+  username & kata sandi bisa dibuat otomatis, lalu **kartu akun** siap dicetak.
 - **Koreksi presensi** per orang per tanggal (mis. HP rusak, lupa presensi pulang, dinas
   mendadak) dengan alasan yang tercatat.
 - **Pengaturan**: nama sekolah, **titik lokasi** (tombol *Gunakan lokasi saya sekarang*),
@@ -102,8 +104,8 @@ kehadirannya bisa dimatikan pilihannya.
 
 ## Kebutuhan
 
-- PHP **8.3.x** dengan ekstensi `pdo_mysql`, `mbstring`, `intl`, `fileinfo`, `openssl`
-  (dan `pdo_sqlite` hanya untuk menjalankan tes otomatis)
+- PHP **8.3.x** dengan ekstensi `pdo_mysql`, `mbstring`, `intl`, `fileinfo`, `openssl`,
+  `zip`, `xmlreader` (dua terakhir untuk impor Excel; `pdo_sqlite` hanya untuk tes otomatis)
 - Composer 2
 - **MySQL 8 / MariaDB 10.6+**
 - **Hosting online dengan HTTPS** (sertifikat SSL, mis. Let's Encrypt yang biasanya gratis
@@ -164,11 +166,37 @@ Di hosting, arahkan *document root* domain ke folder **`public`**.
    sekolah, ketuk **Gunakan lokasi saya sekarang**, tunggu akurasinya kecil, lalu simpan.
    (Bisa juga menyalin koordinat dari Google Maps.) Atur radius sesuai luas sekolah.
 2. **Pengaturan → Jam kerja & hari sekolah.**
-3. **Guru & Staf → Tambah** untuk setiap orang. Tandai kepala sekolah, wakil, dan bendahara
-   dengan peran **Pimpinan**. Berikan username & kata sandi secara pribadi.
+3. **Guru & Staf → Impor Excel** untuk membuat semua akun sekaligus (lihat di bawah), atau
+   **Tambah** satu per satu. Tandai kepala sekolah, wakil, dan bendahara dengan peran
+   **Pimpinan**. Berikan username & kata sandi secara pribadi.
 4. Minta setiap guru/staf membuka alamat aplikasi di HP, login, dan **mengizinkan akses lokasi**
    saat diminta browser. Sarankan menambahkannya ke layar utama (menu browser → *Tambahkan ke
    Layar utama*) agar mudah dibuka tiap hari.
+
+### Impor guru & staf dari Excel
+
+Menu **Guru & Staf → Impor Excel**:
+
+1. Unduh **template Excel** (atau CSV). Isi satu baris per orang di lembar *Data guru & staf*;
+   lembar *Petunjuk* menjelaskan setiap kolom. Hanya kolom `nama` yang wajib.
+2. Unggah file. Semua baris **diperiksa dan ditampilkan dulu** (akun baru, diperbarui, atau
+   yang perlu diperbaiki beserta nomor barisnya). Bila ada satu saja yang salah, tidak ada
+   yang disimpan — perbaiki file lalu unggah ulang.
+3. Simpan. Username yang kosong dibuat dari nama (`Drs. Ahmad Fauzi, M.Pd.` → `ahmad.fauzi`),
+   kata sandi yang kosong dibuat acak (mis. `kmbt4827`). Keduanya **ditampilkan sekali**:
+   cetak **kartu akun** untuk dibagikan atau unduh daftarnya (CSV).
+
+Catatan:
+
+- Kolom yang dikenali: `nama`, `username`, `kata_sandi`, `jenis` (guru/tendik), `jabatan`,
+  `nip`, `no_hp`, `peran` (pegawai/pimpinan/admin), `wajib_presensi` (ya/tidak), `jam_masuk`,
+  `jam_pulang`. Nama lain yang umum juga dikenali (mis. "Nama Lengkap", "HP", "Jenis PTK"),
+  dan baris judul tidak harus di baris pertama — **file ekspor Dapodik** bisa langsung dipakai.
+- Akun dicocokkan lewat username, lalu NIP, lalu nama yang sama persis. Mengimpor ulang file
+  yang sama **memperbarui** akun tersebut, bukan membuat akun ganda. Sel kosong tidak menghapus data.
+- **NIP 18 digit** harus berformat Teks di Excel. Template sudah menyiapkannya; bila NIP terlanjur
+  berformat Angka (tampil seperti `1,98E+17`), digit terakhirnya sudah berubah dan baris itu ditolak.
+- Format `.xls` lama: buka di Excel lalu simpan sebagai *Excel Workbook (.xlsx)*.
 
 ### Data uji coba
 
@@ -272,6 +300,7 @@ Struktur penting:
 | `app/Support/Geo.php` | Perhitungan jarak (haversine) |
 | `app/Support/DailySummary.php`, `MonthlyReport.php` | Ringkasan hari ini & rekap bulanan |
 | `app/Services/NationalHolidaySync.php` | Pengambilan libur nasional |
+| `app/Services/EmployeeImporter.php` | Membaca, memeriksa, dan menyimpan impor guru & staf (Excel/CSV) |
 | `public/js/presence.js` | Pembacaan lokasi GPS & tombol presensi di HP |
 | `public/js/app.js`, `public/css/app.css` | Skrip & tampilan umum |
 
