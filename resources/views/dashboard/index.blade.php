@@ -1,160 +1,132 @@
 @extends('layouts.app')
 
-@section('title', 'Dashboard')
+@section('title', 'Kehadiran Hari Ini')
 
 @section('content')
 @php
-    $t = $summary->totals;
+    $totals = $summary['totals'];
     $segments = [
-        ['key' => 'hadir', 'stat' => 'hadir', 'label' => 'Tepat waktu'],
-        ['key' => 'terlambat', 'stat' => 'terlambat', 'label' => 'Terlambat'],
-        ['key' => 'izin', 'stat' => 'izin', 'label' => 'Izin'],
-        ['key' => 'sakit', 'stat' => 'sakit', 'label' => 'Sakit'],
-        ['key' => 'alpa', 'stat' => 'alpa', 'label' => 'Alpa'],
-        ['key' => 'belum', 'stat' => 'unrecorded', 'label' => 'Belum tercatat'],
+        'hadir' => 'Hadir', 'terlambat' => 'Terlambat', 'izin' => 'Izin', 'sakit' => 'Sakit',
+        'cuti' => 'Cuti', 'dinas_luar' => 'Dinas luar', 'alpa' => 'Alpa', 'belum' => 'Belum presensi',
     ];
 @endphp
 
-<div class="page-head">
+<div class="page-head" data-auto-refresh="120">
     <div>
-        <h1>Dashboard</h1>
-        <p class="lead">{{ $today->translatedFormat('l, d F Y') }}
-            @unless ($isSchoolDay)<span class="badge badge--muted">Bukan hari sekolah</span>@endunless
-        </p>
+        <h1>Kehadiran Hari Ini</h1>
+        <p class="lead">{{ $today->translatedFormat('l, d F Y') }} · diperbarui {{ now()->format('H:i') }}</p>
     </div>
-    <div class="actions">
-        <a href="{{ route('attendances.index') }}" class="btn btn--secondary"><x-icon name="clipboard" :size="18" /> Presensi harian</a>
-    </div>
+    @include('partials.type-tabs')
 </div>
 
-<div id="live-dashboard" data-live-url="{{ route('dashboard.live') }}">
-    <div class="dash-top">
-        <section class="card summary" aria-labelledby="summary-title">
-            <h2 id="summary-title" class="card__title">Kehadiran hari ini</h2>
-            <div class="summary__figure">
-                <p class="summary__number">
-                    <span data-stat="present">{{ $t['present'] }}</span><span class="summary__total">/<span data-stat="total">{{ $t['total'] }}</span></span>
-                </p>
-                <p class="summary__caption">
-                    siswa hadir · <strong><span data-stat="percentage">{{ $summary->percentage() }}</span>%</strong>
-                </p>
-            </div>
+@if (! $hasLocation)
+    <div class="alert alert--warning" role="status">
+        <x-icon name="alert" />
+        <div>Lokasi sekolah belum diatur, jadi guru & staf belum bisa presensi.
+            @if (auth()->user()->isAdmin())<a href="{{ route('settings.edit') }}#lokasi">Atur sekarang</a>.@else Minta admin mengaturnya.@endif
+        </div>
+    </div>
+@endif
 
-            <div class="statusbar" aria-hidden="true">
-                @foreach ($segments as $segment)
-                    <span class="statusbar__seg statusbar__seg--{{ $segment['key'] }} @if ($t[$segment['stat']] === 0) is-empty @endif"
-                          data-seg="{{ $segment['stat'] }}" style="flex-grow: {{ $t[$segment['stat']] }}"></span>
-                @endforeach
-            </div>
+@if ($dayOff)
+    <div class="callout callout--info callout--top"><x-icon name="calendar-off" /><p>{{ $dayOff }} Guru & staf tidak perlu presensi.</p></div>
+@endif
 
-            <dl class="breakdown">
-                @foreach ($segments as $segment)
-                    <div>
-                        <dt><span class="swatch swatch--{{ $segment['key'] }}" aria-hidden="true"></span>{{ $segment['label'] }}</dt>
-                        <dd data-stat="{{ $segment['stat'] }}">{{ $t[$segment['stat']] }}</dd>
-                    </div>
-                @endforeach
-            </dl>
-        </section>
+<div class="dash-top">
+    <section class="card summary" aria-labelledby="ringkasan">
+        <h2 id="ringkasan" class="sr-only">Ringkasan</h2>
+        <div class="summary__figure">
+            <p class="summary__number">{{ $summary['present'] }}<span class="summary__total">/{{ $summary['total'] }}</span></p>
+            <p class="summary__caption"><strong>{{ $summary['percentage'] }}%</strong> sudah hadir
+                @if ($totals['terlambat'] > 0) · {{ $totals['terlambat'] }} terlambat @endif
+            </p>
+        </div>
 
-        <section class="card" aria-labelledby="trend-title">
-            <h2 id="trend-title" class="card__title">7 hari terakhir</h2>
+        <div class="statusbar" aria-hidden="true">
+            @foreach ($segments as $key => $text)
+                <span class="statusbar__seg statusbar__seg--{{ $key }} @if ($totals[$key] === 0) is-empty @endif" style="flex-grow: {{ $totals[$key] }}"></span>
+            @endforeach
+        </div>
+
+        <dl class="breakdown">
+            @foreach ($segments as $key => $text)
+                <div>
+                    <dt><span class="swatch swatch--{{ $key }}" aria-hidden="true"></span>{{ $text }}</dt>
+                    <dd>{{ $totals[$key] }}</dd>
+                </div>
+            @endforeach
+        </dl>
+        @if (! $dayOff && $totals['belum'] > 0)
+            <p class="hint summary__hint">Yang belum presensi dan tidak mengajukan izin ditandai Alpa otomatis pukul {{ $markingTime }}.</p>
+        @endif
+    </section>
+
+    <section class="card" aria-labelledby="tren">
+        <h2 id="tren" class="card__title">Kehadiran 7 hari sekolah terakhir</h2>
+        @if ($trend === [])
+            <p class="empty">Belum ada data.</p>
+        @else
             <ol class="trend">
                 @foreach ($trend as $day)
-                    <li class="trend__day @unless ($day['school_day']) is-off @endunless @if ($day['today']) is-today @endif">
-                        <span class="trend__value" @if ($day['today']) data-stat="percentage-label" @endif>{{ $day['school_day'] ? $day['percentage'].'%' : '–' }}</span>
-                        <span class="trend__track" aria-hidden="true">
-                            <span class="trend__fill" @if ($day['today']) data-trend-today @endif style="height: {{ $day['school_day'] ? max(2, $day['percentage']) : 0 }}%"></span>
-                        </span>
-                        <span class="trend__label">
-                            <span aria-hidden="true">{{ $day['label'] }}</span>
-                            <span class="sr-only">{{ $day['date']->translatedFormat('l, d F') }}: {{ $day['school_day'] ? $day['count'].' siswa hadir' : 'bukan hari sekolah' }}</span>
-                        </span>
+                    <li class="trend__day @if ($day['today']) is-today @endif">
+                        <span class="trend__value">{{ $day['percentage'] }}%</span>
+                        <span class="trend__track" aria-hidden="true"><span class="trend__fill" style="height: {{ max(2, $day['percentage']) }}%"></span></span>
+                        <span class="trend__label"><span aria-hidden="true">{{ $day['label'] }}</span><span class="sr-only">{{ $day['full'] }}</span></span>
                     </li>
                 @endforeach
             </ol>
-        </section>
-    </div>
-
-    <div class="dash-bottom">
-        <section class="card" aria-labelledby="classes-title">
-            <div class="card__head">
-                <h2 id="classes-title" class="card__title">Per kelas</h2>
-                <a href="{{ route('attendances.index', ['status' => 'belum']) }}" class="link-quiet">Lihat yang belum presensi</a>
-            </div>
-            @if ($summary->classes->isEmpty())
-                <p class="empty">Belum ada kelas berisi siswa.
-                    @if (auth()->user()->isAdmin())<a href="{{ route('students.create') }}">Tambah siswa</a>@endif
-                </p>
-            @else
-                <div class="table-wrap">
-                    <table class="table table--stack table--classes">
-                        <caption class="sr-only">Kehadiran per kelas hari ini</caption>
-                        <thead>
-                        <tr>
-                            <th scope="col">Kelas</th>
-                            <th scope="col">Hadir</th>
-                            <th scope="col" class="num">Terlambat</th>
-                            <th scope="col" class="num">Izin/Sakit</th>
-                            <th scope="col" class="num">Belum</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        @foreach ($summary->classes as $row)
-                            @php $pct = $row['total'] > 0 ? (int) round($row['present'] / $row['total'] * 100) : 0; @endphp
-                            <tr data-class-row="{{ $row['class']->id }}">
-                                <th scope="row" data-label="Kelas">
-                                    <a href="{{ route('attendances.index', ['kelas' => $row['class']->id]) }}">{{ $row['class']->name }}</a>
-                                    @if ($row['class']->level)<span class="muted">{{ $row['class']->level }}</span>@endif
-                                </th>
-                                <td data-label="Hadir">
-                                    <span class="progress">
-                                        <span class="progress__bar" aria-hidden="true"><span data-class-bar style="width: {{ $pct }}%"></span></span>
-                                        <span class="progress__text"><span data-class-stat="present">{{ $row['present'] }}</span>/<span data-class-stat="total">{{ $row['total'] }}</span></span>
-                                    </span>
-                                </td>
-                                <td data-label="Terlambat" class="num" data-class-stat="terlambat">{{ $row['terlambat'] }}</td>
-                                <td data-label="Izin/Sakit" class="num" data-class-stat="izin_sakit">{{ $row['izin'] + $row['sakit'] }}</td>
-                                <td data-label="Belum" class="num" data-class-stat="unrecorded">{{ $row['unrecorded'] }}</td>
-                            </tr>
-                        @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            @endif
-        </section>
-
-        <div>
-            <section class="card" aria-labelledby="feed-title">
-                <div class="card__head">
-                    <h2 id="feed-title" class="card__title">Tap terakhir</h2>
-                    <span class="live-indicator" data-live-status><span class="dot dot--live" aria-hidden="true"></span> Langsung</span>
-                </div>
-                <ul class="feed" data-feed aria-live="polite" aria-relevant="additions">
-                    @forelse ($recentScans as $scan)
-                        <li class="feed__item" data-scan-id="{{ $scan->id }}">
-                            <span class="feed__time">{{ $scan->scanned_at->format('H.i') }}</span>
-                            <span class="feed__who">
-                                <strong>{{ $scan->student?->name ?? 'Kartu '.$scan->uid }}</strong>
-                                <span>{{ collect([$scan->student?->schoolClass?->name, $scan->sourceName()])->filter()->implode(' · ') }}</span>
-                            </span>
-                            <span class="badge badge--{{ $scan->result->tone() }}">{{ $scan->result->label() }}</span>
-                        </li>
-                    @empty
-                        <li class="feed__empty" data-feed-empty>Belum ada kartu yang ditempel hari ini.</li>
-                    @endforelse
-                </ul>
-                <div class="card__foot"><a href="{{ route('scans.index') }}" class="link-quiet">Semua log tap</a></div>
-            </section>
-
-            @if ($unregisteredCount > 0)
-                <div class="callout">
-                    <x-icon name="card" :size="20" />
-                    <p><strong>{{ $unregisteredCount }} siswa</strong> belum punya kartu terdaftar.
-                        <a href="{{ route('students.index', ['kartu' => 'belum']) }}">Lihat daftar</a></p>
-                </div>
-            @endif
-        </div>
-    </div>
+        @endif
+    </section>
 </div>
+
+<section class="card" aria-labelledby="daftar">
+    <div class="card__head">
+        <h2 id="daftar" class="card__title">Guru & staf ({{ $summary['total'] }})</h2>
+        <a class="link-quiet" href="{{ route('reports.monthly', array_filter(['jenis' => $type?->value])) }}">Rekap bulan ini</a>
+    </div>
+
+    @if ($summary['rows']->isEmpty())
+        <p class="empty">Belum ada guru atau staf yang wajib presensi.</p>
+    @else
+        <div class="table-wrap">
+            <table class="table table--stack table--grid">
+                <thead>
+                <tr>
+                    <th scope="col">Nama</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Masuk</th>
+                    <th scope="col">Pulang</th>
+                    <th scope="col">Keterangan</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach ($summary['rows'] as $row)
+                    @php $attendance = $row['attendance']; @endphp
+                    <tr>
+                        <th scope="row">
+                            <a href="{{ route('employees.show', $row['user']) }}">{{ $row['user']->name }}</a>
+                            <span class="muted">{{ $row['user']->subtitle() }}</span>
+                        </th>
+                        <td data-label="Status"><x-status-badge :status="$attendance?->status" /></td>
+                        <td data-label="Masuk">
+                            {{ $attendance?->check_in_at?->format('H:i') ?? '—' }}
+                            @if ($attendance?->check_in_distance !== null)<span class="muted nowrap">{{ $attendance->check_in_distance }} m dari sekolah</span>@endif
+                        </td>
+                        <td data-label="Pulang">{{ $attendance?->check_out_at?->format('H:i') ?? '—' }}</td>
+                        <td data-label="Keterangan">
+                            @if ($attendance)
+                                @php $remarks = $attendance->remarks(true); @endphp
+                                @if ($remarks)<span>{{ implode(' · ', $remarks) }}</span>@endif
+                                @if ($attendance->leaveRequest)
+                                    <span class="note">{{ $attendance->leaveRequest->reason }} · {{ $attendance->leaveRequest->periodLabel() }}</span>
+                                @endif
+                            @endif
+                        </td>
+                    </tr>
+                @endforeach
+                </tbody>
+            </table>
+        </div>
+    @endif
+</section>
 @endsection

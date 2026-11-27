@@ -2,86 +2,79 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\SchoolClass;
+use App\Enums\AttendanceStatus;
+use App\Enums\EmployeeType;
 use App\Support\MonthlyReport;
 use App\Support\SchoolSettings;
-use Carbon\CarbonImmutable;
+use App\Support\Spreadsheet;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
+/**
+ * Rekap kehadiran bulanan guru & staf.
+ */
 class ReportController extends Controller
 {
     public function monthly(Request $request, SchoolSettings $settings): View
     {
-        [$report, $classes] = $this->buildReport($request, $settings);
+        $month = HistoryController::month($request);
+        $type = EmployeeType::tryFrom((string) $request->query('jenis'));
 
         return view('reports.monthly', [
-            'report' => $report,
-            'classes' => $classes,
-            'legend' => MonthlyReport::legend(),
+            'report' => MonthlyReport::build($month, $settings, $type),
+            'month' => $month,
+            'type' => $type,
+            'statuses' => AttendanceStatus::cases(),
         ]);
     }
 
-    /**
-     * Unduh rekap sebagai CSV yang bisa langsung dibuka di Excel.
-     * Memakai pemisah titik koma (;) karena Excel berbahasa Indonesia
-     * memakai koma sebagai pemisah desimal.
-     */
     public function export(Request $request, SchoolSettings $settings): StreamedResponse
     {
-        [$report] = $this->buildReport($request, $settings);
+        $month = HistoryController::month($request);
+        $type = EmployeeType::tryFrom((string) $request->query('jenis'));
+        $report = MonthlyReport::build($month, $settings, $type);
+        $statuses = AttendanceStatus::cases();
 
-        $filename = Str::slug($report->title()).'.csv';
+        $filename = sprintf('rekap-presensi-%s%s.csv', $month->format('Y-m'), $type ? '-'.$type->value : '');
 
-        return response()->streamDownload(function () use ($report, $settings) {
+        return response()->streamDownload(function () use ($report, $statuses) {
             $out = fopen('php://output', 'w');
-            fwrite($out, "\xEF\xBB\xBF"); // BOM agar Excel membaca UTF-8 dengan benar.
+            fwrite($out, "\xEF\xBB\xBF"); // BOM agar Excel membaca UTF-8.
 
-            fputcsv($out, [$settings->schoolName()], ';');
-            fputcsv($out, [$report->title()], ';');
-            fputcsv($out, [], ';');
+            $header = ['Nama', 'NIP', 'Jabatan', 'Jenis'];
+            foreach ($report['days'] as $day) {
+                $header[] = $day['day'];
+            }
+            foreach ($statuses as $status) {
+                $header[] = $status->label();
+            }
+            array_push($header, 'Tanpa keterangan', 'Total terlambat (menit)', 'Pulang awal (kali)', 'Kehadiran (%)');
+            fputcsv($out, $header, ';');
 
-            fputcsv($out, [
-                'No', 'NIS', 'Nama', 'Kelas',
-                ...array_map(fn ($day) => (string) $day['day'], $report->days),
-                'H', 'T', 'I', 'S', 'A', '% Hadir',
-            ], ';');
+            foreach ($report['rows'] as $row) {
+                $user = $row['user'];
+                $line = [Spreadsheet::csvSafe($user->name), $user->nip, Spreadsheet::csvSafe($user->position), $user->employee_type->label()];
 
-            foreach ($report->rows as $index => $row) {
-                fputcsv($out, [
-                    $index + 1,
-                    $row['student']->nis,
-                    $row['student']->name,
-                    $row['student']->schoolClass?->name,
-                    ...array_map(fn ($cell) => $cell['code'], $row['cells']),
-                    ...array_values($row['counts']),
-                    $row['percentage'] === null ? '' : $row['percentage'].'%',
-                ], ';');
+                foreach ($report['days'] as $day) {
+                    $attendance = $row['cells'][$day['date']];
+                    $line[] = match (true) {
+                        $attendance !== null => $attendance->status->code(),
+                        ! $day['school'] => 'L',
+                        $day['future'] || $day['today'] => '',
+                        default => '-',
+                    };
+                }
+                foreach ($statuses as $status) {
+                    $line[] = $row['totals'][$status->value];
+                }
+                array_push($line, $row['missing'], $row['late_minutes'], $row['early_count'], $row['percentage']);
+                fputcsv($out, $line, ';');
             }
 
             fputcsv($out, [], ';');
-            fputcsv($out, ['Keterangan: H = Hadir, T = Terlambat, I = Izin, S = Sakit, A = Alpa, – = tidak ada catatan (dihitung alpa)'], ';');
-            fputcsv($out, ['Hari sekolah yang sudah berjalan: '.$report->schoolDaysElapsed], ';');
-
+            fputcsv($out, ['Keterangan: H Hadir, T Terlambat, I Izin, S Sakit, C Cuti, D Dinas luar, A Alpa, L Libur, - tidak ada catatan'], ';');
             fclose($out);
         }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
-    }
-
-    /** @return array{0: MonthlyReport, 1: Collection<int, SchoolClass>} */
-    private function buildReport(Request $request, SchoolSettings $settings): array
-    {
-        $filters = $request->validate([
-            'bulan' => ['nullable', 'date_format:Y-m'],
-            'kelas' => ['nullable', 'integer'],
-        ]);
-
-        $classes = SchoolClass::orderBy('level')->orderBy('name')->get();
-        $class = isset($filters['kelas']) ? $classes->firstWhere('id', (int) $filters['kelas']) : null;
-        $month = CarbonImmutable::createFromFormat('!Y-m', $filters['bulan'] ?? now()->format('Y-m'));
-
-        return [new MonthlyReport($month, $class, $settings), $classes];
     }
 }

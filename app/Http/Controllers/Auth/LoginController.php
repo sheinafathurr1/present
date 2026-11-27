@@ -18,14 +18,23 @@ class LoginController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $credentials = $request->validate([
-            'email' => ['required', 'string', 'email'],
+        $data = $request->validate([
+            'username' => ['required', 'string', 'max:50'],
             'password' => ['required', 'string'],
-        ]);
+        ], [], ['username' => 'username', 'password' => 'kata sandi']);
 
-        if (! Auth::attempt($credentials, $request->boolean('remember'))) {
+        $credentials = [
+            'username' => mb_strtolower(trim($data['username'])),
+            'password' => $data['password'],
+        ];
+
+        if (! Auth::attempt([...$credentials, 'is_active' => true], $request->boolean('remember'))) {
+            $inactive = Auth::getProvider()->retrieveByCredentials(['username' => $credentials['username']]);
+
             throw ValidationException::withMessages([
-                'email' => 'Email atau kata sandi salah.',
+                'username' => $inactive && ! $inactive->is_active && Auth::getProvider()->validateCredentials($inactive, $credentials)
+                    ? 'Akun ini sudah dinonaktifkan. Hubungi admin sekolah.'
+                    : 'Username atau kata sandi salah.',
             ]);
         }
 

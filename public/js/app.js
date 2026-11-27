@@ -1,91 +1,41 @@
 /*
- * Presensi Sekolah — skrip dashboard (tanpa framework, tanpa build).
+ * Presensi guru & staf — skrip umum (tanpa framework, tanpa build).
  */
 (function () {
     'use strict';
 
-    var root = document.documentElement;
-
-    function store(key, value) {
-        try {
-            if (value === null) localStorage.removeItem(key); else localStorage.setItem(key, value);
-        } catch (e) { /* mode privat: abaikan */ }
-    }
-
-    /* ---------- Ukuran teks & kontras tinggi ---------- */
-
-    var SIZES = ['-1', '0', '1', '2', '3'];
-
-    function currentSize() {
-        return root.dataset.textSize || '0';
-    }
-
-    document.querySelectorAll('[data-text-size]').forEach(function (button) {
-        button.addEventListener('click', function () {
-            var index = SIZES.indexOf(currentSize());
-            var action = button.dataset.textSize;
-            var next = action === 'reset' ? '0'
-                : SIZES[Math.max(0, Math.min(SIZES.length - 1, index + (action === 'up' ? 1 : -1)))];
-
-            if (next === '0') {
-                delete root.dataset.textSize;
-                store('a11y:text-size', null);
-            } else {
-                root.dataset.textSize = next;
-                store('a11y:text-size', next);
-            }
-        });
-    });
-
-    var contrastButton = document.querySelector('[data-contrast-toggle]');
-    if (contrastButton) {
-        var syncContrast = function () {
-            contrastButton.setAttribute('aria-pressed', root.dataset.contrast === 'high' ? 'true' : 'false');
-        };
-        syncContrast();
-        contrastButton.addEventListener('click', function () {
-            if (root.dataset.contrast === 'high') {
-                delete root.dataset.contrast;
-                store('a11y:contrast', null);
-            } else {
-                root.dataset.contrast = 'high';
-                store('a11y:contrast', 'high');
-            }
-            syncContrast();
-        });
-    }
-
-    /* ---------- Menu samping (layar kecil) ---------- */
+    /* ---------- Menu (laci di HP) ---------- */
 
     var sidebar = document.getElementById('sidebar');
-    var toggle = document.querySelector('[data-sidebar-toggle]');
+    var toggles = document.querySelectorAll('[data-sidebar-toggle]');
     var backdrop = document.querySelector('[data-sidebar-backdrop]');
+    var lastToggle = null;
 
     function setSidebar(open) {
-        if (!sidebar || !toggle) return;
+        if (!sidebar) return;
         sidebar.classList.toggle('is-open', open);
-        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        toggles.forEach(function (toggle) { toggle.setAttribute('aria-expanded', open ? 'true' : 'false'); });
         if (backdrop) backdrop.hidden = !open;
         if (open) {
             var first = sidebar.querySelector('a, button');
             if (first) first.focus();
+        } else if (lastToggle) {
+            lastToggle.focus();
         }
     }
 
-    if (toggle) {
+    toggles.forEach(function (toggle) {
         toggle.addEventListener('click', function () {
+            lastToggle = toggle;
             setSidebar(!sidebar.classList.contains('is-open'));
         });
-    }
+    });
     if (backdrop) backdrop.addEventListener('click', function () { setSidebar(false); });
     document.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape' && sidebar && sidebar.classList.contains('is-open')) {
-            setSidebar(false);
-            toggle.focus();
-        }
+        if (event.key === 'Escape' && sidebar && sidebar.classList.contains('is-open')) setSidebar(false);
     });
 
-    /* ---------- Konfirmasi, cetak, salin ---------- */
+    /* ---------- Konfirmasi, cetak, fokus ringkasan galat ---------- */
 
     document.querySelectorAll('form[data-confirm]').forEach(function (form) {
         form.addEventListener('submit', function (event) {
@@ -97,209 +47,241 @@
         button.addEventListener('click', function () { window.print(); });
     });
 
-    document.querySelectorAll('[data-copy]').forEach(function (button) {
+    // Unduh isi tabel sebagai CSV (dibuat di browser, tidak lewat server).
+    document.querySelectorAll('[data-download-table]').forEach(function (button) {
         button.addEventListener('click', function () {
-            var input = document.querySelector(button.dataset.copy);
-            if (!input) return;
-            input.select();
-            var done = function () { button.textContent = 'Tersalin ✓'; };
-            if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText(input.value).then(done, function () {
-                    document.execCommand('copy');
-                    done();
-                });
-            } else {
-                document.execCommand('copy');
-                done();
-            }
+            var table = document.querySelector(button.dataset.downloadTable);
+            if (!table) return;
+            var cell = function (node) {
+                var text = node.textContent.replace(/\s+/g, ' ').trim();
+                if (/^[=+\-@]/.test(text)) text = "'" + text;  // jangan dibaca sebagai rumus oleh Excel
+                return '"' + text.replace(/"/g, '""') + '"';
+            };
+            var lines = Array.prototype.map.call(table.querySelectorAll('tr'), function (tr) {
+                return Array.prototype.map.call(tr.querySelectorAll('th, td'), cell).join(';');
+            });
+            var link = document.createElement('a');
+            link.href = URL.createObjectURL(new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' }));
+            link.download = button.dataset.filename || 'data.csv';
+            document.body.appendChild(link);
+            link.click();
+            setTimeout(function () { URL.revokeObjectURL(link.href); link.remove(); }, 0);
         });
     });
+
+    /* ---------- Rentang tanggal: pilihan cepat ---------- */
+
+    document.querySelectorAll('[data-date-range]').forEach(function (range) {
+        var from = range.querySelector('input[name="dari"]');
+        var to = range.querySelector('input[name="sampai"]');
+        var chips = range.querySelectorAll('[data-range-from]');
+        var sync = function () {
+            chips.forEach(function (chip) {
+                chip.setAttribute('aria-pressed', chip.dataset.rangeFrom === from.value && chip.dataset.rangeTo === to.value ? 'true' : 'false');
+            });
+            to.min = from.value || '';
+        };
+        chips.forEach(function (chip) {
+            chip.addEventListener('click', function () {
+                from.value = chip.dataset.rangeFrom;
+                to.value = chip.dataset.rangeTo;
+                sync();
+            });
+        });
+        from.addEventListener('change', sync);
+        to.addEventListener('change', sync);
+        sync();
+    });
+
+    // Ekspor: pilihan jenis hanya untuk "semua guru & staf".
+    var exportPerson = document.querySelector('[data-export-person]');
+    if (exportPerson) {
+        var everyone = document.querySelector('[data-for-everyone]');
+        var notePerson = document.querySelector('[data-note-person]');
+        var noteEveryone = document.querySelector('[data-note-everyone]');
+        var toggleExport = function () {
+            var all = exportPerson.value === '';
+            everyone.hidden = !all;
+            everyone.querySelector('select').disabled = !all;
+            notePerson.hidden = all;
+            noteEveryone.hidden = !all;
+        };
+        exportPerson.addEventListener('change', toggleExport);
+        toggleExport();
+    }
 
     var summary = document.querySelector('[data-autofocus]');
     if (summary) summary.focus();
 
-    /* ---------- Isian nomor kartu (pembaca USB = keyboard) ---------- */
-
-    document.querySelectorAll('[data-rfid-capture]').forEach(function (wrapper) {
-        var input = wrapper.querySelector('[data-rfid-input]');
-        var status = wrapper.querySelector('[data-rfid-status]');
-        if (!input) return;
-
-        input.addEventListener('focus', function () {
-            wrapper.classList.add('is-listening');
-            if (status && !input.value) status.textContent = 'Siap — silakan tempelkan kartu ke pembaca.';
-        });
-        input.addEventListener('blur', function () {
-            wrapper.classList.remove('is-listening');
-        });
-        // Pembaca USB mengetik nomor lalu menekan Enter. Jangan sampai formulir terkirim.
-        input.addEventListener('keydown', function (event) {
-            if (event.key === 'Enter') {
-                event.preventDefault();
-                input.value = input.value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-                if (status) status.textContent = input.value ? 'Kartu terbaca: ' + input.value : '';
-            }
-        });
-
-        // Kartu ditempel saat kotak tidak sedang difokus (lihat card-reader.js).
-        input.addEventListener('rfid:filled', function (event) {
-            if (status) status.textContent = 'Kartu terbaca: ' + event.detail.uid;
-            wrapper.classList.add('is-filled');
-            setTimeout(function () { wrapper.classList.remove('is-filled'); }, 1500);
-        });
-
-        document.querySelectorAll('[data-fill-uid]').forEach(function (chip) {
-            chip.addEventListener('click', function () {
-                input.value = chip.dataset.fillUid;
-                if (status) status.textContent = 'Kartu dipilih: ' + input.value;
-                input.focus();
-            });
-        });
+    // Formulir filter: kirim otomatis saat pilihan diubah.
+    document.querySelectorAll('[data-autosubmit]').forEach(function (input) {
+        input.addEventListener('change', function () { input.form.requestSubmit ? input.form.requestSubmit() : input.form.submit(); });
     });
 
-    /* Usulkan mode umpan balik saat tap sesuai jenis kekhususan. */
-    var disability = document.querySelector('[data-disability-select]');
-    var feedback = document.querySelector('[data-feedback-select]');
-    if (disability && feedback) {
-        var touched = false;
-        feedback.addEventListener('change', function () { touched = true; });
-        disability.addEventListener('change', function () {
-            if (touched) return;
-            var suggestion = { A: 'audio', B: 'visual' }[disability.value] || 'both';
-            feedback.value = suggestion;
-        });
-    }
+    /* ---------- Dashboard: perbarui berkala ---------- */
 
-    /* ---------- Dashboard yang memperbarui diri ---------- */
-
-    var live = document.getElementById('live-dashboard');
-    if (live && window.fetch) {
-        var url = live.dataset.liveUrl;
-        var feed = live.querySelector('[data-feed]');
-        var indicator = live.querySelector('[data-live-status]');
-        var seen = {};
-        feed.querySelectorAll('[data-scan-id]').forEach(function (item) { seen[item.dataset.scanId] = true; });
-
-        var make = function (tag, className, text) {
-            var node = document.createElement(tag);
-            if (className) node.className = className;
-            if (text !== undefined) node.textContent = text;
-            return node;
-        };
-
-        var renderScan = function (scan) {
-            var li = make('li', 'feed__item');
-            li.dataset.scanId = scan.id;
-            var who = make('span', 'feed__who');
-            who.appendChild(make('strong', '', scan.name));
-            who.appendChild(make('span', '', [scan['class'], scan.source].filter(Boolean).join(' · ')));
-            li.appendChild(make('span', 'feed__time', scan.time));
-            li.appendChild(who);
-            li.appendChild(make('span', 'badge badge--' + scan.tone, scan.result));
-            return li;
-        };
-
-        var updateNumbers = function (data) {
-            var totals = data.totals;
-            Object.keys(totals).forEach(function (key) {
-                live.querySelectorAll('[data-stat="' + key + '"]').forEach(function (node) { node.textContent = totals[key]; });
-                var seg = live.querySelector('[data-seg="' + key + '"]');
-                if (seg) {
-                    seg.style.flexGrow = totals[key];
-                    seg.classList.toggle('is-empty', totals[key] === 0);
-                }
-            });
-            live.querySelectorAll('[data-stat="percentage"]').forEach(function (node) { node.textContent = data.percentage; });
-            var todayLabel = live.querySelector('[data-stat="percentage-label"]');
-            if (todayLabel) todayLabel.textContent = data.percentage + '%';
-            var todayFill = live.querySelector('[data-trend-today]');
-            if (todayFill) todayFill.style.height = Math.max(2, data.percentage) + '%';
-        };
-
-        var updateClasses = function (classes) {
-            (classes || []).forEach(function (row) {
-                var tr = live.querySelector('[data-class-row="' + row.id + '"]');
-                if (!tr) return;
-                ['present', 'total', 'terlambat', 'izin_sakit', 'unrecorded'].forEach(function (key) {
-                    var cell = tr.querySelector('[data-class-stat="' + key + '"]');
-                    if (cell) cell.textContent = row[key];
-                });
-                var bar = tr.querySelector('[data-class-bar]');
-                if (bar) bar.style.width = row.percentage + '%';
-            });
-        };
-
-        var refresh = function () {
-            fetch(url, { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
-                .then(function (response) {
-                    if (!response.ok) throw new Error(response.status);
-                    return response.json();
-                })
-                .then(function (data) {
-                    updateNumbers(data);
-                    updateClasses(data.classes);
-
-                    var fresh = data.scans.filter(function (scan) { return !seen[scan.id]; });
-                    if (fresh.length) {
-                        var empty = feed.querySelector('[data-feed-empty]');
-                        if (empty) empty.remove();
-                        fresh.reverse().forEach(function (scan) {
-                            seen[scan.id] = true;
-                            var item = renderScan(scan);
-                            item.classList.add('is-new');
-                            feed.insertBefore(item, feed.firstChild);
-                        });
-                        while (feed.children.length > 6) feed.removeChild(feed.lastChild);
-                    }
-
-                    if (indicator) {
-                        indicator.classList.remove('is-error');
-                        indicator.lastChild.textContent = ' Langsung';
-                    }
-                })
-                .catch(function () {
-                    if (indicator) {
-                        indicator.classList.add('is-error');
-                        indicator.lastChild.textContent = ' Gagal memperbarui';
-                    }
-                });
-        };
-
-        // Langsung perbarui setelah kartu ditempel di PC ini, dan berkala untuk tap dari PC lain.
-        document.addEventListener('presensi:tap', refresh);
+    var refresh = document.querySelector('[data-auto-refresh]');
+    if (refresh) {
+        var seconds = Number(refresh.dataset.autoRefresh) || 120;
+        var loadedAt = Date.now();
         setInterval(function () {
-            if (!document.hidden) refresh();
+            if (!document.hidden && Date.now() - loadedAt >= seconds * 1000) window.location.reload();
         }, 15000);
     }
 
-    /* ---------- Presensi harian: perbarui baris siswa setelah tap ---------- */
+    /* ---------- Pengaturan: ambil titik sekolah dari lokasi HP ---------- */
 
-    document.addEventListener('presensi:tap', function (event) {
-        var data = event.detail;
-        if (!data.student || !data.attendance) return;
-        var row = document.querySelector('[data-attendance-row="' + data.student.id + '"]');
-        if (!row || row.dataset.date !== row.dataset.today) return;
+    var locate = document.querySelector('[data-locate]');
+    if (locate) {
+        var latInput = document.getElementById('f-school_lat');
+        var lngInput = document.getElementById('f-school_lng');
+        var status = document.querySelector('[data-locate-status]');
+        var mapLink = document.querySelector('[data-map-link]');
 
-        var att = data.attendance;
-        var badge = row.querySelector('[data-cell="status"] .badge');
-        if (badge) {
-            badge.className = 'badge badge--' + att.status_tone;
-            badge.textContent = '';
-            var code = document.createElement('span');
-            code.className = 'badge__code';
-            code.setAttribute('aria-hidden', 'true');
-            code.textContent = att.status_code;
-            badge.appendChild(code);
-            badge.appendChild(document.createTextNode(att.status_label));
+        var updateMap = function () {
+            if (!mapLink) return;
+            var ok = latInput.value && lngInput.value;
+            mapLink.hidden = !ok;
+            if (ok) mapLink.href = 'https://www.google.com/maps?q=' + encodeURIComponent(latInput.value + ',' + lngInput.value);
+        };
+        latInput.addEventListener('input', updateMap);
+        lngInput.addEventListener('input', updateMap);
+        updateMap();
+
+        locate.addEventListener('click', function () {
+            if (!window.isSecureContext || !('geolocation' in navigator)) {
+                status.textContent = 'Lokasi hanya bisa dibaca lewat alamat https:// di browser yang mendukung.';
+                return;
+            }
+            locate.disabled = true;
+            status.textContent = 'Membaca lokasi… tunggu sampai akurasinya kecil.';
+
+            var best = null;
+            var watch = navigator.geolocation.watchPosition(function (position) {
+                if (!best || position.coords.accuracy < best.coords.accuracy) best = position;
+                latInput.value = best.coords.latitude.toFixed(7);
+                lngInput.value = best.coords.longitude.toFixed(7);
+                status.textContent = 'Terbaca dengan akurasi ± ' + Math.round(best.coords.accuracy) + ' m' +
+                    (best.coords.accuracy > 20 ? ' — tunggu sebentar agar lebih akurat…' : '. Simpan pengaturan bila sudah sesuai.');
+                updateMap();
+            }, function (error) {
+                status.textContent = error.code === 1
+                    ? 'Akses lokasi ditolak. Izinkan lokasi untuk situs ini lalu coba lagi.'
+                    : 'Lokasi belum terbaca. Pastikan GPS menyala lalu coba lagi.';
+                navigator.geolocation.clearWatch(watch);
+                locate.disabled = false;
+            }, { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 });
+
+            // Ambil bacaan terbaik selama 20 detik.
+            setTimeout(function () {
+                navigator.geolocation.clearWatch(watch);
+                locate.disabled = false;
+                if (best) status.textContent = 'Lokasi diisi (akurasi ± ' + Math.round(best.coords.accuracy) + ' m). Simpan pengaturan bila sudah sesuai.';
+            }, 20000);
+        });
+    }
+
+    /* ---------- Pengajuan izin ---------- */
+
+    var leaveForm = document.querySelector('[data-leave-form]');
+    if (leaveForm) {
+        var start = leaveForm.querySelector('#f-start_date');
+        var end = leaveForm.querySelector('#f-end_date');
+        var syncEnd = function () {
+            end.min = start.value || end.min;
+            if (end.value && start.value && end.value < start.value) end.value = start.value;
+        };
+        start.addEventListener('change', syncEnd);
+        syncEnd();
+
+        // Foto dari kamera HP bisa beberapa MB: perkecil dulu sebelum diunggah.
+        var file = leaveForm.querySelector('input[type="file"]');
+        var fileStatus = leaveForm.querySelector('[data-file-status]');
+        if (file && window.DataTransfer && window.URL && document.createElement('canvas').toBlob) {
+            file.addEventListener('change', function () {
+                var picked = file.files && file.files[0];
+                if (!picked || !/^image\/(jpeg|png|webp|heic|heif)$/i.test(picked.type) || picked.size < 900 * 1024) return;
+
+                var img = new Image();
+                var url = URL.createObjectURL(picked);
+                img.onload = function () {
+                    var max = 1600;
+                    var scale = Math.min(1, max / Math.max(img.width, img.height));
+                    var canvas = document.createElement('canvas');
+                    canvas.width = Math.round(img.width * scale);
+                    canvas.height = Math.round(img.height * scale);
+                    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+                    URL.revokeObjectURL(url);
+                    canvas.toBlob(function (blob) {
+                        if (!blob || blob.size >= picked.size) return;
+                        try {
+                            var smaller = new File([blob], picked.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' });
+                            var transfer = new DataTransfer();
+                            transfer.items.add(smaller);
+                            file.files = transfer.files;
+                            if (fileStatus) fileStatus.textContent = 'Foto diperkecil menjadi ' + Math.round(blob.size / 1024) + ' KB.';
+                        } catch (e) { /* biarkan file asli */ }
+                    }, 'image/jpeg', 0.82);
+                };
+                img.onerror = function () { URL.revokeObjectURL(url); };
+                img.src = url;
+            });
         }
-        var cellIn = row.querySelector('[data-cell="in"]');
-        var cellOut = row.querySelector('[data-cell="out"]');
-        if (cellIn) cellIn.textContent = att.check_in || '—';
-        if (cellOut) cellOut.textContent = att.check_out || '—';
-        var select = row.querySelector('select[name="status"]');
-        if (select) select.value = att.status;
-        row.classList.remove('is-updated');
-        void row.offsetWidth; // mulai ulang animasi sorotan
-        row.classList.add('is-updated');
+    }
+
+    /* ---------- Koreksi presensi: jam hanya untuk Hadir/Terlambat ---------- */
+
+    var correction = document.querySelector('[data-correction-form]');
+    if (correction) {
+        var times = correction.querySelector('[data-times]');
+        var sync = function () {
+            var checked = correction.querySelector('input[name="status"]:checked');
+            var present = checked && (checked.value === 'hadir' || checked.value === 'terlambat');
+            times.hidden = !present;
+            times.querySelectorAll('input').forEach(function (input) { input.disabled = !present; });
+        };
+        correction.querySelectorAll('input[name="status"]').forEach(function (radio) { radio.addEventListener('change', sync); });
+        sync();
+    }
+
+    /* ---------- Kalender hari libur ---------- */
+
+    // Di layar kecil (kalender bisa digeser), langsung buka bulan ini.
+    var calGrid = document.querySelector('[data-cal-grid]');
+    var calCurrent = calGrid && calGrid.querySelector('[data-cal-current]');
+    if (calCurrent && calGrid.scrollWidth > calGrid.clientWidth) {
+        calGrid.scrollLeft = calCurrent.offsetLeft - calGrid.offsetLeft - 16;
+    }
+
+    document.querySelectorAll('[data-cal-day]').forEach(function (day) {
+        day.addEventListener('click', function () {
+            var date = day.dataset.calDay;
+
+            // Tanggal libur: tampilkan keterangannya di daftar.
+            if (day.hasAttribute('data-holiday')) {
+                var item = document.getElementById('libur-' + date);
+                if (item) {
+                    item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    item.classList.remove('is-flash');
+                    void item.offsetWidth;
+                    item.classList.add('is-flash');
+                }
+                return;
+            }
+
+            // Tanggal kosong: isi formulir libur sekolah.
+            var startDate = document.getElementById('f-date');
+            var endDate = document.getElementById('f-end_date');
+            var name = document.getElementById('f-name');
+            if (!startDate) return;
+            if (startDate.value && !endDate.value && date > startDate.value) {
+                endDate.value = date;          // klik kedua: tanggal akhir rentang
+            } else {
+                startDate.value = date;
+                endDate.value = '';
+            }
+            document.getElementById('form-libur').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            name.focus({ preventScroll: true });
+        });
     });
 })();

@@ -2,68 +2,95 @@
 <html lang="id">
 <head>
     @include('partials.head')
-    <title>@yield('title', 'Dashboard') · {{ $schoolSettings->schoolName() }}</title>
+    <title>@yield('title', 'Presensi') · {{ $schoolSettings->schoolName() }}</title>
 </head>
 <body>
 <a class="skip-link" href="#main">Lewati ke konten utama</a>
 
 @php
     $user = auth()->user();
-    $isAdmin = $user->isAdmin();
-    $nav = [
-        'Harian' => [
-            ['route' => 'dashboard', 'match' => 'dashboard', 'icon' => 'home', 'label' => 'Dashboard'],
-            ['route' => 'attendances.index', 'match' => 'attendances.*', 'icon' => 'clipboard', 'label' => 'Presensi Harian'],
-            ['route' => 'reports.monthly', 'match' => 'reports.*', 'icon' => 'calendar', 'label' => 'Rekap Bulanan'],
-            ['route' => 'scans.index', 'match' => 'scans.*', 'icon' => 'list', 'label' => 'Log Tap Kartu'],
-        ],
-        'Data Sekolah' => [
-            ['route' => 'students.index', 'match' => 'students.*', 'icon' => 'users', 'label' => 'Siswa'],
-            ['route' => 'classes.index', 'match' => 'classes.*', 'icon' => 'school', 'label' => 'Kelas', 'admin' => true],
-            ['route' => 'holidays.index', 'match' => 'holidays.*', 'icon' => 'calendar-off', 'label' => 'Hari Libur', 'admin' => true],
-        ],
-        'Sistem' => [
-            ['route' => 'devices.index', 'match' => 'devices.*', 'icon' => 'wifi', 'label' => 'Pembaca Wi-Fi', 'admin' => true],
-            ['route' => 'users.index', 'match' => 'users.*', 'icon' => 'user-cog', 'label' => 'Pengguna', 'admin' => true],
-            ['route' => 'settings.edit', 'match' => 'settings.*', 'icon' => 'sliders', 'label' => 'Pengaturan', 'admin' => true],
-        ],
-    ];
+    $monitor = $user->canMonitor();
+    $attends = $user->attends();
+
+    // Menu lengkap (sidebar di layar lebar, laci "Menu" di HP).
+    $nav = [];
+    if ($monitor) {
+        $nav['Pantau'] = [
+            ['route' => 'dashboard', 'match' => 'dashboard', 'icon' => 'home', 'label' => 'Kehadiran Hari Ini'],
+            ['route' => 'reports.monthly', 'match' => 'reports.*', 'icon' => 'chart', 'label' => 'Rekap Bulanan'],
+            ['route' => 'leaves.monitor', 'match' => 'leaves.monitor', 'icon' => 'file', 'label' => 'Pengajuan Izin'],
+            ['route' => 'employees.index', 'match' => ['employees.*', 'corrections.*'], 'icon' => 'users', 'label' => 'Guru & Staf'],
+            ['route' => 'exports.create', 'match' => 'exports.*', 'icon' => 'download', 'label' => 'Ekspor Data'],
+        ];
+    }
+    $mine = [];
+    if ($attends) {
+        $mine[] = ['route' => 'presence.show', 'match' => 'presence.*', 'icon' => 'pin', 'label' => 'Presensi'];
+        $mine[] = ['route' => 'history.index', 'match' => 'history.*', 'icon' => 'calendar', 'label' => 'Riwayat Saya'];
+        $mine[] = ['route' => 'leaves.index', 'match' => ['leaves.index', 'leaves.create'], 'icon' => 'file', 'label' => $monitor ? 'Izin Saya' : 'Izin & Cuti'];
+    }
+    $mine[] = ['route' => 'account.edit', 'match' => 'account.*', 'icon' => 'user', 'label' => 'Akun'];
+    $nav[$monitor ? 'Saya' : 'Menu'] = $mine;
+    if ($user->isAdmin()) {
+        $nav['Kelola'] = [
+            ['route' => 'holidays.index', 'match' => 'holidays.*', 'icon' => 'calendar-off', 'label' => 'Hari Libur'],
+            ['route' => 'settings.edit', 'match' => 'settings.*', 'icon' => 'sliders', 'label' => 'Pengaturan'],
+        ];
+    }
+
+    // Navigasi bawah di HP: paling banyak 5 tombol.
+    if (! $monitor) {
+        $tabs = [
+            ['route' => 'presence.show', 'match' => 'presence.*', 'icon' => 'pin', 'label' => 'Presensi'],
+            ['route' => 'history.index', 'match' => 'history.*', 'icon' => 'calendar', 'label' => 'Riwayat'],
+            ['route' => 'leaves.index', 'match' => 'leaves.*', 'icon' => 'file', 'label' => 'Izin'],
+            ['route' => 'account.edit', 'match' => 'account.*', 'icon' => 'user', 'label' => 'Akun'],
+        ];
+    } else {
+        $tabs = [['route' => 'dashboard', 'match' => 'dashboard', 'icon' => 'home', 'label' => 'Hari ini']];
+        if ($attends) {
+            $tabs[] = ['route' => 'presence.show', 'match' => 'presence.*', 'icon' => 'pin', 'label' => 'Presensi'];
+        }
+        $tabs[] = ['route' => 'reports.monthly', 'match' => 'reports.*', 'icon' => 'chart', 'label' => 'Rekap'];
+        $tabs[] = ['route' => 'employees.index', 'match' => ['employees.*', 'corrections.*'], 'icon' => 'users', 'label' => 'Guru & Staf'];
+        if (! $attends) {
+            $tabs[] = ['route' => 'leaves.monitor', 'match' => 'leaves.monitor', 'icon' => 'file', 'label' => 'Izin'];
+        }
+    }
+    $hasDrawer = $monitor;
 @endphp
 
 <div class="shell">
     <aside class="sidebar" id="sidebar" aria-label="Menu utama">
-        <a class="brand" href="{{ route('dashboard') }}">
+        <a class="brand" href="{{ $user->homeRoute() }}">
             @include('partials.brand-mark')
             <span class="brand__text">
                 <strong>{{ $schoolSettings->schoolName() }}</strong>
-                <span>Presensi kartu RFID</span>
+                <span>Presensi guru & staf</span>
             </span>
         </a>
 
         <nav class="nav">
             @foreach ($nav as $group => $items)
-                @php $items = array_filter($items, fn ($item) => $isAdmin || empty($item['admin'])); @endphp
-                @if ($items)
-                    <p class="nav__group" id="nav-{{ \Illuminate\Support\Str::slug($group) }}">{{ $group }}</p>
-                    <ul aria-labelledby="nav-{{ \Illuminate\Support\Str::slug($group) }}">
-                        @foreach ($items as $item)
-                            @php $active = request()->routeIs($item['match']); @endphp
-                            <li>
-                                <a href="{{ route($item['route']) }}" class="nav__link @if ($active) is-active @endif" @if ($active) aria-current="page" @endif>
-                                    <x-icon :name="$item['icon']" /> {{ $item['label'] }}
-                                </a>
-                            </li>
-                        @endforeach
-                    </ul>
-                @endif
+                <p class="nav__group" id="nav-{{ \Illuminate\Support\Str::slug($group) }}">{{ $group }}</p>
+                <ul aria-labelledby="nav-{{ \Illuminate\Support\Str::slug($group) }}">
+                    @foreach ($items as $item)
+                        @php $active = request()->routeIs(...(array) $item['match']); @endphp
+                        <li>
+                            <a href="{{ route($item['route']) }}" class="nav__link @if ($active) is-active @endif" @if ($active) aria-current="page" @endif>
+                                <x-icon :name="$item['icon']" /> {{ $item['label'] }}
+                            </a>
+                        </li>
+                    @endforeach
+                </ul>
             @endforeach
         </nav>
 
         <div class="sidebar__user">
-            <span class="sidebar__avatar" aria-hidden="true">{{ mb_strtoupper(mb_substr($user->name, 0, 1)) }}</span>
+            <span class="avatar" aria-hidden="true">{{ $user->initials() }}</span>
             <span class="sidebar__who">
                 <strong>{{ $user->name }}</strong>
-                <span>{{ $user->role->label() }}</span>
+                <span>{{ $user->subtitle() }}</span>
             </span>
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
@@ -76,29 +103,13 @@
 
     <div class="main-col">
         <header class="topbar">
-            <button type="button" class="btn btn--ghost btn--icon topbar__menu" data-sidebar-toggle aria-controls="sidebar" aria-expanded="false">
-                <x-icon name="menu" /><span class="sr-only">Buka menu</span>
-            </button>
-
-            <div class="reader-tools" role="group" aria-label="Pembaca kartu">
-                <span class="reader-status" data-reader-status>
-                    <span class="reader-status__dot" aria-hidden="true"></span>
-                    <span data-reader-label>Siap menerima kartu</span>
-                </span>
-                <button type="button" class="btn btn--ghost btn--sm" data-sound-toggle aria-pressed="true">
-                    <span data-when="on"><x-icon name="volume" :size="18" /> <span class="topbar__label">Suara aktif</span></span>
-                    <span data-when="off"><x-icon name="volume-off" :size="18" /> <span class="topbar__label">Suara mati</span></span>
-                </button>
-            </div>
-
-            <div class="a11y-tools" role="group" aria-label="Pengaturan tampilan">
-                <button type="button" class="btn btn--ghost btn--sm" data-text-size="down" title="Perkecil teks">A−<span class="sr-only"> Perkecil teks</span></button>
-                <button type="button" class="btn btn--ghost btn--sm" data-text-size="reset" title="Ukuran teks normal">A<span class="sr-only"> Ukuran teks normal</span></button>
-                <button type="button" class="btn btn--ghost btn--sm" data-text-size="up" title="Perbesar teks">A+<span class="sr-only"> Perbesar teks</span></button>
-                <button type="button" class="btn btn--ghost btn--sm" data-contrast-toggle aria-pressed="false">
-                    <x-icon name="contrast" :size="18" /> <span class="topbar__label">Kontras tinggi</span>
-                </button>
-            </div>
+            <a class="brand brand--compact" href="{{ $user->homeRoute() }}">
+                @include('partials.brand-mark', ['size' => 30])
+                <span class="brand__text"><strong>{{ $schoolSettings->schoolName() }}</strong></span>
+            </a>
+            <a class="topbar__avatar" href="{{ route('account.edit') }}" title="Akun: {{ $user->name }}">
+                <span class="avatar avatar--sm" aria-hidden="true">{{ $user->initials() }}</span><span class="sr-only">Akun {{ $user->name }}</span>
+            </a>
         </header>
 
         <main id="main" class="content" tabindex="-1">
@@ -107,46 +118,22 @@
         </main>
     </div>
 </div>
+
+<nav class="tabbar" aria-label="Navigasi utama">
+    @foreach ($tabs as $tab)
+        @php $active = request()->routeIs(...(array) $tab['match']); @endphp
+        <a href="{{ route($tab['route']) }}" class="tabbar__item @if ($active) is-active @endif" @if ($active) aria-current="page" @endif>
+            <x-icon :name="$tab['icon']" :size="22" /><span>{{ $tab['label'] }}</span>
+        </a>
+    @endforeach
+    @if ($hasDrawer)
+        <button type="button" class="tabbar__item" data-sidebar-toggle aria-controls="sidebar" aria-expanded="false">
+            <x-icon name="grid" :size="22" /><span>Menu</span>
+        </button>
+    @endif
+</nav>
 <div class="sidebar-backdrop" data-sidebar-backdrop hidden></div>
 
-{{-- Hasil tap kartu: kartu ringkas di tengah layar, di atas halaman apa pun yang sedang dibuka guru. --}}
-<div class="tap-overlay" data-tap-overlay hidden>
-    <section class="tap-card" data-tap-card aria-labelledby="tap-name" aria-describedby="tap-status tap-message">
-        <div class="tap-card__visual">
-            <div class="tap-card__photo" data-tap-photo></div>
-            <span class="tap-card__icon" aria-hidden="true">
-                <span data-icon="success"><x-icon name="check" :size="40" /></span>
-                <span data-icon="warning"><x-icon name="clock" :size="40" /></span>
-                <span data-icon="checkout"><x-icon name="door" :size="40" /></span>
-                <span data-icon="info"><x-icon name="info" :size="40" /></span>
-                <span data-icon="error"><x-icon name="x" :size="40" /></span>
-            </span>
-        </div>
-
-        <h2 class="tap-card__name" id="tap-name" data-tap-name></h2>
-        <p class="tap-card__meta" data-tap-class></p>
-
-        <p class="tap-card__status" id="tap-status">
-            <span data-tap-headline></span><span class="tap-card__time" data-tap-time></span>
-        </p>
-        <p class="tap-card__message" id="tap-message" data-tap-message></p>
-
-        <button type="button" class="btn btn--secondary tap-card__close" data-tap-close>Tutup</button>
-        <p class="tap-card__hint">atau tekan <kbd>Esc</kbd></p>
-
-        <span class="tap-card__timer" data-tap-timer aria-hidden="true"></span>
-    </section>
-</div>
-<div class="sr-only" aria-live="assertive" aria-atomic="true" data-tap-announcer></div>
-
-<script>
-    window.Presensi = {
-        tapUrl: @json(route('tap.store')),
-        heartbeatUrl: @json(route('heartbeat')),
-        loginUrl: @json(route('login')),
-    };
-</script>
-<script src="{{ asset('js/card-reader.js') }}?v={{ filemtime(public_path('js/card-reader.js')) }}" defer></script>
 <script src="{{ asset('js/app.js') }}?v={{ filemtime(public_path('js/app.js')) }}" defer></script>
 @stack('scripts')
 </body>
